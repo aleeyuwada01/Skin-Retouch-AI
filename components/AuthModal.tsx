@@ -55,6 +55,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
         // Save remember me preference
         localStorage.setItem('rememberMe', rememberMe ? 'true' : 'false');
         
+        // First check if there's an existing session
+        const existingSession = await supabaseService.getSession();
+        if (existingSession?.user) {
+          // Session exists, use it directly
+          await onLoginSuccess(existingSession.user);
+          onClose();
+          return;
+        }
+        
         const data = await supabaseService.signIn(email, password);
         if (data.user) {
           await onLoginSuccess(data.user);
@@ -70,6 +79,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
         setError("Account with this email already exists.");
       } else if (message.includes("Password should be")) {
         setError("Password must be at least 6 characters.");
+      } else if (message.includes("already") || message.includes("session")) {
+        // Session conflict - try to use existing session
+        try {
+          const session = await supabaseService.getSession();
+          if (session?.user) {
+            await onLoginSuccess(session.user);
+            onClose();
+            return;
+          }
+        } catch {
+          // Ignore and show original error
+        }
+        setError(message);
       } else {
         setError(message);
       }

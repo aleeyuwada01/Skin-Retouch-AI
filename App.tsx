@@ -27,6 +27,7 @@ const App: React.FC = () => {
     authInitialized.current = true;
     
     let isMounted = true;
+    let hasSession = false;
     
     const initAuth = async () => {
       try {
@@ -47,6 +48,7 @@ const App: React.FC = () => {
         if (!isMounted) return;
         
         if (session?.user) {
+          hasSession = true;
           try {
             const profile = await supabaseService.getProfile(session.user.id);
             if (isMounted) {
@@ -72,9 +74,9 @@ const App: React.FC = () => {
       }
     };
 
-    // Add timeout to prevent infinite loading
+    // Add timeout to prevent infinite loading - but only if no session found
     const timeout = setTimeout(() => {
-      if (isMounted && authState.isLoading) {
+      if (isMounted && authState.isLoading && !hasSession) {
         console.warn('Auth init timeout - forcing load complete');
         setAuthState(prev => {
           if (prev.isLoading) {
@@ -87,23 +89,26 @@ const App: React.FC = () => {
 
     initAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes - this handles session restoration
     const { data: { subscription } } = supabaseService.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
       
-      if (event === 'SIGNED_IN' && session?.user) {
+      // Handle initial session and token refresh
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
+        hasSession = true;
         try {
           const profile = await supabaseService.getProfile(session.user.id);
           if (isMounted) {
             setAuthState({ user: session.user, profile, isLoading: false });
           }
         } catch (error) {
-          console.error('Profile fetch on sign in error:', error);
+          console.error('Profile fetch on auth change error:', error);
           if (isMounted) {
             setAuthState({ user: session.user, profile: null, isLoading: false });
           }
         }
       } else if (event === 'SIGNED_OUT') {
+        hasSession = false;
         if (isMounted) {
           setAuthState({ user: null, profile: null, isLoading: false });
           setView('landing');
