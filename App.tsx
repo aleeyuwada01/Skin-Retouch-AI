@@ -21,35 +21,78 @@ const App: React.FC = () => {
 
   // Initialize auth state
   useEffect(() => {
+    let isMounted = true;
+    
     const initAuth = async () => {
       try {
         const session = await supabaseService.getSession();
+        if (!isMounted) return;
+        
         if (session?.user) {
-          const profile = await supabaseService.getProfile(session.user.id);
-          setAuthState({ user: session.user, profile, isLoading: false });
+          try {
+            const profile = await supabaseService.getProfile(session.user.id);
+            if (isMounted) {
+              setAuthState({ user: session.user, profile, isLoading: false });
+            }
+          } catch (profileError) {
+            console.error('Profile fetch error:', profileError);
+            // User exists but profile fetch failed - still allow access
+            if (isMounted) {
+              setAuthState({ user: session.user, profile: null, isLoading: false });
+            }
+          }
         } else {
-          setAuthState({ user: null, profile: null, isLoading: false });
+          if (isMounted) {
+            setAuthState({ user: null, profile: null, isLoading: false });
+          }
         }
       } catch (error) {
         console.error('Auth init error:', error);
-        setAuthState({ user: null, profile: null, isLoading: false });
+        if (isMounted) {
+          setAuthState({ user: null, profile: null, isLoading: false });
+        }
       }
     };
+
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (isMounted && authState.isLoading) {
+        console.warn('Auth init timeout - forcing load complete');
+        setAuthState({ user: null, profile: null, isLoading: false });
+      }
+    }, 5000);
 
     initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabaseService.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+      
       if (event === 'SIGNED_IN' && session?.user) {
-        const profile = await supabaseService.getProfile(session.user.id);
-        setAuthState({ user: session.user, profile, isLoading: false });
+        try {
+          const profile = await supabaseService.getProfile(session.user.id);
+          if (isMounted) {
+            setAuthState({ user: session.user, profile, isLoading: false });
+          }
+        } catch (error) {
+          console.error('Profile fetch on sign in error:', error);
+          if (isMounted) {
+            setAuthState({ user: session.user, profile: null, isLoading: false });
+          }
+        }
       } else if (event === 'SIGNED_OUT') {
-        setAuthState({ user: null, profile: null, isLoading: false });
-        setView('landing');
+        if (isMounted) {
+          setAuthState({ user: null, profile: null, isLoading: false });
+          setView('landing');
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLoginSuccess = async (user: User, redirectToApp: boolean = true) => {
