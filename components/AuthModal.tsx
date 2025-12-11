@@ -20,6 +20,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
 
   useEffect(() => {
     setView(initialView);
@@ -51,6 +52,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
           onClose();
         }
       } else {
+        // Save remember me preference
+        localStorage.setItem('rememberMe', rememberMe ? 'true' : 'false');
+        
         const data = await supabaseService.signIn(email, password);
         if (data.user) {
           await onLoginSuccess(data.user);
@@ -146,6 +150,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
                 />
               </div>
             </div>
+
+            {view === 'login' && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-neutral-700 bg-[#1a1a1a] text-[#dfff00] focus:ring-[#dfff00] focus:ring-offset-0 cursor-pointer"
+                />
+                <label htmlFor="rememberMe" className="text-sm text-neutral-400 cursor-pointer select-none">
+                  Remember me
+                </label>
+              </div>
+            )}
 
             {error && (
               <div className="p-3 rounded-lg bg-red-900/20 border border-red-900/50 text-red-200 text-xs text-center">

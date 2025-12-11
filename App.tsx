@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { LandingPage } from './components/LandingPage';
 import { Editor } from './components/Editor';
 import { AdminPanel } from './components/AdminPanel';
@@ -18,13 +18,30 @@ const App: React.FC = () => {
     profile: null,
     isLoading: true
   });
+  const authInitialized = useRef(false);
 
   // Initialize auth state
   useEffect(() => {
+    // Prevent double initialization
+    if (authInitialized.current) return;
+    authInitialized.current = true;
+    
     let isMounted = true;
     
     const initAuth = async () => {
       try {
+        // Check if "remember me" is disabled
+        const rememberMe = localStorage.getItem('rememberMe') !== 'false';
+        
+        if (!rememberMe) {
+          // Clear session if remember me is disabled
+          await supabaseService.signOut();
+          if (isMounted) {
+            setAuthState({ user: null, profile: null, isLoading: false });
+          }
+          return;
+        }
+        
         const session = await supabaseService.getSession();
         if (!isMounted) return;
         
@@ -58,9 +75,14 @@ const App: React.FC = () => {
     const timeout = setTimeout(() => {
       if (isMounted && authState.isLoading) {
         console.warn('Auth init timeout - forcing load complete');
-        setAuthState({ user: null, profile: null, isLoading: false });
+        setAuthState(prev => {
+          if (prev.isLoading) {
+            return { user: null, profile: null, isLoading: false };
+          }
+          return prev;
+        });
       }
-    }, 5000);
+    }, 8000);
 
     initAuth();
 
