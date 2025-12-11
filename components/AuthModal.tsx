@@ -47,13 +47,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
           setSuccessMessage("Check your email to confirm your account!");
         } else if (data.user && data.session) {
           // Auto-confirmed (for development)
-          onLoginSuccess(data.user);
+          await onLoginSuccess(data.user);
           onClose();
         }
       } else {
         const data = await supabaseService.signIn(email, password);
         if (data.user) {
-          onLoginSuccess(data.user);
+          await onLoginSuccess(data.user);
           onClose();
         }
       }

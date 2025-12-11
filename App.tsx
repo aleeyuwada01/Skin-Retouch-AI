@@ -96,14 +96,23 @@ const App: React.FC = () => {
   }, []);
 
   const handleLoginSuccess = async (user: User, redirectToApp: boolean = true) => {
-    const profile = await supabaseService.getProfile(user.id);
-    setAuthState({ user, profile, isLoading: false });
-    
-    // Redirect admin users to admin panel, regular users to editor
-    if (redirectToApp) {
-      if (profile?.is_admin) {
-        setView('admin');
-      } else {
+    try {
+      const profile = await supabaseService.getProfile(user.id);
+      setAuthState({ user, profile, isLoading: false });
+      
+      // Redirect admin users to admin panel, regular users to editor
+      if (redirectToApp) {
+        if (profile?.is_admin) {
+          setView('admin');
+        } else {
+          setView('editor');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile on login:', error);
+      // Still allow login even if profile fetch fails
+      setAuthState({ user, profile: null, isLoading: false });
+      if (redirectToApp) {
         setView('editor');
       }
     }
