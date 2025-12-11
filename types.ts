@@ -28,6 +28,7 @@ export interface StyleConfig {
   description: string; // Used for UI display
   prompt: string;
   thumbnail: string; // URL for the style preview
+  recommended?: boolean; // Show recommended badge
 }
 
 export interface BatchItem {

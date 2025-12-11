@@ -94,9 +94,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
-                    <span className={`font-medium text-sm ${selectedStyle === style.id ? 'text-white' : 'text-neutral-300'}`}>
-                      {style.label}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-medium text-sm ${selectedStyle === style.id ? 'text-white' : 'text-neutral-300'}`}>
+                        {style.label}
+                      </span>
+                      {style.recommended && (
+                        <span className="text-[9px] font-bold uppercase bg-[#dfff00] text-black px-1.5 py-0.5 rounded">
+                          Recommended
+                        </span>
+                      )}
+                    </div>
                     {selectedStyle === style.id && (
                       <div className="w-4 h-4 rounded-full bg-[#dfff00] flex items-center justify-center shrink-0">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="text-black">
