@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LandingPage } from './components/LandingPage';
 import { Editor } from './components/Editor';
 import { AdminPanel } from './components/AdminPanel';
@@ -18,109 +18,29 @@ const App: React.FC = () => {
     profile: null,
     isLoading: true
   });
-  const authInitialized = useRef(false);
 
-  // Initialize auth state
+  // Clear storage on page load (temporary fix) - preserve rememberMe setting
   useEffect(() => {
-    // Prevent double initialization
-    if (authInitialized.current) return;
-    authInitialized.current = true;
+    const rememberMeSetting = localStorage.getItem('rememberMe');
     
-    let isMounted = true;
-    let hasSession = false;
+    // Clear all localStorage except rememberMe
+    localStorage.clear();
     
-    const initAuth = async () => {
-      try {
-        // Check if "remember me" is disabled (defaults to true if not set)
-        const rememberMeSetting = localStorage.getItem('rememberMe');
-        const rememberMe = rememberMeSetting === null || rememberMeSetting === 'true';
-        
-        if (!rememberMe) {
-          // Clear session if remember me is disabled, but keep the preference
-          await supabaseService.signOut();
-          if (isMounted) {
-            setAuthState({ user: null, profile: null, isLoading: false });
-          }
-          return;
-        }
-        
-        const session = await supabaseService.getSession();
-        if (!isMounted) return;
-        
-        if (session?.user) {
-          hasSession = true;
-          try {
-            const profile = await supabaseService.getProfile(session.user.id);
-            if (isMounted) {
-              setAuthState({ user: session.user, profile, isLoading: false });
-            }
-          } catch (profileError) {
-            console.error('Profile fetch error:', profileError);
-            // User exists but profile fetch failed - still allow access
-            if (isMounted) {
-              setAuthState({ user: session.user, profile: null, isLoading: false });
-            }
-          }
-        } else {
-          if (isMounted) {
-            setAuthState({ user: null, profile: null, isLoading: false });
-          }
-        }
-      } catch (error) {
-        console.error('Auth init error:', error);
-        if (isMounted) {
-          setAuthState({ user: null, profile: null, isLoading: false });
-        }
-      }
-    };
-
-    // Add timeout to prevent infinite loading - but only if no session found
-    const timeout = setTimeout(() => {
-      if (isMounted && authState.isLoading && !hasSession) {
-        console.warn('Auth init timeout - forcing load complete');
-        setAuthState(prev => {
-          if (prev.isLoading) {
-            return { user: null, profile: null, isLoading: false };
-          }
-          return prev;
-        });
-      }
-    }, 4000);
-
-    initAuth();
-
-    // Listen for auth changes - this handles session restoration
-    const { data: { subscription } } = supabaseService.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return;
-      
-      // Handle initial session and token refresh
-      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') && session?.user) {
-        hasSession = true;
-        try {
-          const profile = await supabaseService.getProfile(session.user.id);
-          if (isMounted) {
-            setAuthState({ user: session.user, profile, isLoading: false });
-          }
-        } catch (error) {
-          console.error('Profile fetch on auth change error:', error);
-          if (isMounted) {
-            setAuthState({ user: session.user, profile: null, isLoading: false });
-          }
-        }
-      } else if (event === 'SIGNED_OUT') {
-        hasSession = false;
-        if (isMounted) {
-          setAuthState({ user: null, profile: null, isLoading: false });
-          setView('landing');
-        }
+    // Restore rememberMe setting
+    if (rememberMeSetting !== null) {
+      localStorage.setItem('rememberMe', rememberMeSetting);
+    }
+    
+    // Clear Supabase session from storage
+    const keys = Object.keys(sessionStorage);
+    keys.forEach(key => {
+      if (key.includes('supabase')) {
+        sessionStorage.removeItem(key);
       }
     });
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timeout);
-      subscription.unsubscribe();
-    };
+    
+    // Set loading to false immediately since we cleared the session
+    setAuthState({ user: null, profile: null, isLoading: false });
   }, []);
 
   const handleLoginSuccess = async (user: User, redirectToApp: boolean = true) => {
