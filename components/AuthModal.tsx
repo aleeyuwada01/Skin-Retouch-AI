@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from './Button';
+import { supabaseService } from '../services/supabaseService';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
   const [view, setView] = useState<'login' | 'register'>(initialView);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   // Form State
   const [name, setName] = useState('');
@@ -22,6 +24,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
   useEffect(() => {
     setView(initialView);
     setError(null);
+    setSuccessMessage(null);
     setName('');
     setEmail('');
     setPassword('');
@@ -29,46 +32,46 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
     setIsLoading(true);
 
-    setTimeout(() => {
-      try {
-        const users = JSON.parse(localStorage.getItem('sr_users') || '[]');
+    try {
+      if (view === 'register') {
+        const data = await supabaseService.signUp(email, password, name);
         
-        if (view === 'register') {
-          // Check if user exists
-          if (users.find((u: any) => u.email === email)) {
-            throw new Error("Account with this email already exists.");
-          }
-          
-          const newUser = { id: Date.now(), name, email, password };
-          users.push(newUser);
-          localStorage.setItem('sr_users', JSON.stringify(users));
-          
-          // Auto login
-          localStorage.setItem('sr_session', JSON.stringify(newUser));
-          onLoginSuccess(newUser);
-          onClose();
-        } else {
-          // Login
-          const user = users.find((u: any) => u.email === email && u.password === password);
-          if (!user) {
-            throw new Error("Invalid email or password.");
-          }
-          
-          localStorage.setItem('sr_session', JSON.stringify(user));
-          onLoginSuccess(user);
+        if (data.user && !data.session) {
+          // Email confirmation required
+          setSuccessMessage("Check your email to confirm your account!");
+        } else if (data.user && data.session) {
+          // Auto-confirmed (for development)
+          onLoginSuccess(data.user);
           onClose();
         }
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
+      } else {
+        const data = await supabaseService.signIn(email, password);
+        if (data.user) {
+          onLoginSuccess(data.user);
+          onClose();
+        }
       }
-    }, 1000);
+    } catch (err: any) {
+      const message = err.message || "An error occurred";
+      // Make error messages more user-friendly
+      if (message.includes("Invalid login credentials")) {
+        setError("Invalid email or password.");
+      } else if (message.includes("User already registered")) {
+        setError("Account with this email already exists.");
+      } else if (message.includes("Password should be")) {
+        setError("Password must be at least 6 characters.");
+      } else {
+        setError(message);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -147,6 +150,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialVi
             {error && (
               <div className="p-3 rounded-lg bg-red-900/20 border border-red-900/50 text-red-200 text-xs text-center">
                 {error}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="p-3 rounded-lg bg-green-900/20 border border-green-900/50 text-green-200 text-xs text-center">
+                {successMessage}
               </div>
             )}
 

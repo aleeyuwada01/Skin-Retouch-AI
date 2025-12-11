@@ -4,6 +4,8 @@ export enum EnhanceStyle {
   Sculpted = 'Sculpted Glow',
   Portrait = 'Skin-First Portrait',
   Minimalist = 'Minimalist Clean-Up',
+  DarkSkin = 'Dark Skin Glow',
+  FullBody = 'Full Body Pro',
   Custom = 'Custom Edit'
 }
 

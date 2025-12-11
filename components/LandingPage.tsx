@@ -1,17 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, Check, ArrowRight, Star, LogOut, User, LayoutDashboard } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, Check, ArrowRight, Star, LogOut, User, LayoutDashboard, Shield } from 'lucide-react';
 import { Button } from './Button';
 import { AuthModal } from './AuthModal';
 import { PolicyModal, PolicyType } from './PolicyModal';
 import { ComparisonSlider } from './ComparisonSlider';
+import { AuthState } from '../App';
 
 interface LandingPageProps {
   onStart: () => void;
+  authState: AuthState;
+  onLoginSuccess: (user: any) => void;
+  onLogout: () => void;
+  onAdminClick: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
-  // Auth State
-  const [user, setUser] = useState<any>(null);
+export const LandingPage: React.FC<LandingPageProps> = ({ 
+  onStart, 
+  authState, 
+  onLoginSuccess, 
+  onLogout,
+  onAdminClick 
+}) => {
   const [authModal, setAuthModal] = useState<{isOpen: boolean; view: 'login' | 'register'}>({
     isOpen: false,
     view: 'login'
@@ -23,22 +32,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
     type: null
   });
 
-  useEffect(() => {
-    const session = localStorage.getItem('sr_session');
-    if (session) {
-      setUser(JSON.parse(session));
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('sr_session');
-    setUser(null);
-  };
+  const user = authState.user;
+  const profile = authState.profile;
 
   const handleLoginSuccess = (user: any) => {
-    setUser(user);
-    // Redirect to app immediately after login/register
-    onStart();
+    onLoginSuccess(user);
+    // App.tsx handles redirect based on admin status
   };
 
   const handleStartAction = () => {
@@ -71,8 +70,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                <div className="flex items-center gap-4">
                  <div className="hidden md:flex items-center gap-2 text-sm font-medium text-neutral-300">
                    <User size={16} />
-                   <span>Hi, {user.name}</span>
+                   <span>Hi, {profile?.full_name || user.email?.split('@')[0]}</span>
+                   {profile && (
+                     <span className="text-xs bg-[#dfff00]/20 text-[#dfff00] px-2 py-0.5 rounded-full">
+                       {profile.credits} credits
+                     </span>
+                   )}
                  </div>
+                 {profile?.is_admin && (
+                   <button 
+                     onClick={onAdminClick}
+                     className="hidden md:flex text-sm font-medium bg-purple-600 text-white hover:bg-purple-500 px-3 py-2 rounded-full transition-colors items-center gap-2"
+                   >
+                     <Shield size={14} />
+                     <span>Admin</span>
+                   </button>
+                 )}
                  <button 
                    onClick={onStart}
                    className="hidden md:flex text-sm font-bold bg-[#dfff00] text-black hover:bg-[#ccff00] px-4 py-2 rounded-full transition-colors items-center gap-2"
@@ -81,7 +94,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
                    <span>Dashboard</span>
                  </button>
                  <button 
-                   onClick={handleLogout}
+                   onClick={onLogout}
                    className="text-sm font-medium text-neutral-400 hover:text-white transition-colors flex items-center gap-2"
                  >
                    <LogOut size={16} />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Wand2, Battery, X, Layers } from 'lucide-react';
+import { Sparkles, Wand2, Battery, X, Layers, CreditCard } from 'lucide-react';
 import { EnhanceStyle } from '../types';
 import { STYLES } from '../constants';
 import { Button } from './Button';
@@ -18,6 +18,7 @@ interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
   batchCount?: number;
+  onTopUp?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -32,7 +33,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   remainingCredits,
   isOpen = false,
   onClose,
-  batchCount = 0
+  batchCount = 0,
+  onTopUp
 }) => {
   const isOutOfCredits = remainingCredits <= 0;
   const isBatch = batchCount > 1;
@@ -75,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3 custom-scrollbar">
           {/* Style Selection List */}
-          <div className="space-y-3">
+          <div className="space-y-3" data-tutorial="style-list">
             {STYLES.map((style) => (
               <button
                 key={style.id}
@@ -171,25 +173,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center justify-between mb-3 px-1">
              <span className="text-xs font-medium text-neutral-400 flex items-center gap-1.5">
                <Battery size={14} className={isOutOfCredits ? "text-red-500" : "text-[#dfff00]"} />
-               Daily Credits
+               Credits
              </span>
              <span className={`text-xs font-bold ${isOutOfCredits ? "text-red-500" : "text-white"}`}>
-               {remainingCredits}/5 available
+               {remainingCredits} available
              </span>
           </div>
-          <Button 
-            onClick={onEnhance} 
-            isLoading={isProcessing} 
-            className="w-full font-bold text-sm h-12"
-            disabled={!hasImage || !canEnhance || isOutOfCredits}
-          >
-            {isProcessing ? 'Processing...' : (
-              <span className="flex items-center gap-2">
-                {isOutOfCredits ? 'Limit Reached' : (isBatch ? `Batch Retouch (${batchCount})` : 'Retouch Image')}
-                {isBatch ? <Layers size={14} className="fill-current" /> : <Sparkles size={14} className="fill-current" />}
-              </span>
-            )}
-          </Button>
+          
+          {isOutOfCredits ? (
+            <button 
+              className="w-full font-bold text-sm h-12 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500 transition-all flex items-center justify-center gap-2"
+              onClick={onTopUp}
+            >
+              <CreditCard size={16} />
+              Top Up Credits
+            </button>
+          ) : (
+            <Button 
+              onClick={onEnhance} 
+              isLoading={isProcessing} 
+              className="w-full font-bold text-sm h-12"
+              disabled={!hasImage || !canEnhance}
+              data-tutorial="enhance-button"
+            >
+              {isProcessing ? 'Processing...' : (
+                <span className="flex items-center gap-2">
+                  {isBatch ? `Batch Retouch (${batchCount})` : 'Retouch Image'}
+                  {isBatch ? <Layers size={14} className="fill-current" /> : <Sparkles size={14} className="fill-current" />}
+                </span>
+              )}
+            </Button>
+          )}
         </div>
       </aside>
     </>
