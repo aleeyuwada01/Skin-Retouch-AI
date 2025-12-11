@@ -78,7 +78,9 @@ export const STYLES: StyleConfig[] = [
     label: 'Full Body Pro',
     description: 'Advanced multi-region retouch. Face, neck, hands, body.',
     recommended: true,
-    prompt: `ADVANCED FULL BODY PROFESSIONAL SKIN RETOUCHING with multi-region intelligence.
+    prompt: `You are a professional high-end beauty retoucher. PERFORM ADVANCED FULL BODY PROFESSIONAL SKIN RETOUCHING with multi-region intelligence.
+
+YOUR TASK: Retouch and enhance ALL visible skin in this image. Remove blemishes, even skin tone, smooth imperfections while preserving natural texture.
 
 CRITICAL - DO NOT CHANGE:
 - DO NOT crop, resize, or change the aspect ratio
