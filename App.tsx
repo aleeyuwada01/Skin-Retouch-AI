@@ -30,11 +30,12 @@ const App: React.FC = () => {
     
     const initAuth = async () => {
       try {
-        // Check if "remember me" is disabled
-        const rememberMe = localStorage.getItem('rememberMe') !== 'false';
+        // Check if "remember me" is disabled (defaults to true if not set)
+        const rememberMeSetting = localStorage.getItem('rememberMe');
+        const rememberMe = rememberMeSetting === null || rememberMeSetting === 'true';
         
         if (!rememberMe) {
-          // Clear session if remember me is disabled
+          // Clear session if remember me is disabled, but keep the preference
           await supabaseService.signOut();
           if (isMounted) {
             setAuthState({ user: null, profile: null, isLoading: false });
@@ -82,7 +83,7 @@ const App: React.FC = () => {
           return prev;
         });
       }
-    }, 8000);
+    }, 4000);
 
     initAuth();
 
