@@ -10,18 +10,22 @@ import {
   RefreshCw,
   Ticket,
   Copy,
-  Check
+  Check,
+  Trash2,
+  Image,
+  AlertTriangle
 } from 'lucide-react';
-import { supabaseService, Profile, RetouchHistory, CreditCode } from '../services/supabaseService';
+import { supabaseService, Profile, RetouchHistory, CreditCode, RetouchHistoryWithImages } from '../services/supabaseService';
 
 interface AdminPanelProps {
   onBack: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState<'users' | 'codes' | 'history'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'codes' | 'images' | 'history'>('users');
   const [users, setUsers] = useState<Profile[]>([]);
   const [history, setHistory] = useState<(RetouchHistory & { profiles: { email: string } })[]>([]);
+  const [retouchImages, setRetouchImages] = useState<(RetouchHistoryWithImages & { profiles: { email: string } })[]>([]);
   const [creditCodes, setCreditCodes] = useState<CreditCode[]>([]);
   const [stats, setStats] = useState({ totalUsers: 0, totalRetouches: 0, totalCreditsInSystem: 0 });
   const [isLoading, setIsLoading] = useState(true);
@@ -40,6 +44,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
+  
+  // Delete confirmation modal
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; item: (RetouchHistoryWithImages & { profiles: { email: string } }) | null }>({ isOpen: false, item: null });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -48,13 +56,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [usersData, historyData, statsData, codesData] = await Promise.all([
+      const [usersData, historyData, statsData, codesData, imagesData] = await Promise.all([
         supabaseService.getAllUsers(),
         supabaseService.getAllRetouchHistory(),
         supabaseService.getStats(),
-        supabaseService.getCreditCodes()
+        supabaseService.getCreditCodes(),
+        supabaseService.getAllRetouchHistoryWithImages()
       ]);
       setUsers(usersData);
+      setRetouchImages(imagesData);
       setHistory(historyData);
       setStats(statsData);
       setCreditCodes(codesData);
@@ -110,6 +120,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     setCodeDescription('');
   };
 
+  const handleDeleteImage = async () => {
+    if (!deleteModal.item) return;
+    
+    setIsDeleting(true);
+    try {
+      await supabaseService.deleteRetouchHistoryItem(
+        deleteModal.item.id,
+        deleteModal.item.original_image_url || undefined,
+        deleteModal.item.processed_image_url || undefined
+      );
+      await loadData();
+      setDeleteModal({ isOpen: false, item: null });
+    } catch (error) {
+      console.error('Failed to delete image:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Calculate days until deletion (7 days from creation)
+  const getDaysUntilDeletion = (createdAt: string) => {
+    const created = new Date(createdAt);
+    const deleteDate = new Date(created.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const daysLeft = Math.ceil((deleteDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+    return Math.max(0, daysLeft);
+  };
+
   const filteredUsers = users.filter(u => 
     u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -163,7 +201,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 flex-wrap">
           <button
             onClick={() => setActiveTab('users')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -181,12 +219,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             Credit Codes
           </button>
           <button
+            onClick={() => setActiveTab('images')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'images' ? 'bg-[#dfff00] text-black' : 'bg-[#1a1a1a] text-neutral-400 hover:text-white'
+            }`}
+          >
+            Retouch Images
+          </button>
+          <button
             onClick={() => setActiveTab('history')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === 'history' ? 'bg-[#dfff00] text-black' : 'bg-[#1a1a1a] text-neutral-400 hover:text-white'
             }`}
           >
-            Retouch History
+            History Log
           </button>
         </div>
 
@@ -334,6 +380,87 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'images' && (
+              <div className="space-y-4">
+                {/* Warning Banner */}
+                <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-4 flex items-start gap-3">
+                  <AlertTriangle size={20} className="text-yellow-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-yellow-200 font-medium text-sm">Auto-deletion Policy</p>
+                    <p className="text-yellow-200/70 text-xs mt-1">
+                      Images are automatically deleted 7 days after creation to save storage space.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Images Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {retouchImages.map((item) => {
+                    const daysLeft = getDaysUntilDeletion(item.created_at);
+                    return (
+                      <div key={item.id} className="bg-[#111] border border-white/5 rounded-xl overflow-hidden">
+                        {/* Image Preview */}
+                        <div className="aspect-video bg-black relative group">
+                          {item.processed_image_url ? (
+                            <img 
+                              src={item.processed_image_url} 
+                              alt="Processed" 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-neutral-600">
+                              <Image size={32} />
+                            </div>
+                          )}
+                          {/* Overlay on hover */}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            {item.processed_image_url && (
+                              <a 
+                                href={item.processed_image_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors"
+                              >
+                                <Image size={16} className="text-white" />
+                              </a>
+                            )}
+                            <button
+                              onClick={() => setDeleteModal({ isOpen: true, item })}
+                              className="bg-red-500/80 hover:bg-red-500 p-2 rounded-lg transition-colors"
+                            >
+                              <Trash2 size={16} className="text-white" />
+                            </button>
+                          </div>
+                        </div>
+                        {/* Info */}
+                        <div className="p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs bg-white/10 px-2 py-1 rounded">{item.style}</span>
+                            <span className={`text-xs px-2 py-1 rounded ${
+                              daysLeft <= 1 ? 'bg-red-500/20 text-red-400' : 
+                              daysLeft <= 3 ? 'bg-yellow-500/20 text-yellow-400' : 
+                              'bg-green-500/20 text-green-400'
+                            }`}>
+                              {daysLeft} days left
+                            </span>
+                          </div>
+                          <p className="text-xs text-neutral-500 truncate">{item.profiles?.email || 'Unknown'}</p>
+                          <p className="text-xs text-neutral-600 mt-1">
+                            {new Date(item.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {retouchImages.length === 0 && (
+                    <div className="col-span-full text-center py-12 text-neutral-500">
+                      No retouch images yet
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -514,6 +641,55 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && deleteModal.item && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 size={32} className="text-red-400" />
+              </div>
+              <h3 className="text-lg font-bold mb-2">Delete Image?</h3>
+              <p className="text-sm text-neutral-400">
+                This will permanently delete the original and processed images for this retouch.
+              </p>
+            </div>
+            
+            {deleteModal.item.processed_image_url && (
+              <div className="mb-4 rounded-lg overflow-hidden">
+                <img 
+                  src={deleteModal.item.processed_image_url} 
+                  alt="Preview" 
+                  className="w-full h-32 object-cover"
+                />
+              </div>
+            )}
+
+            <div className="text-xs text-neutral-500 mb-4 text-center">
+              User: {deleteModal.item.profiles?.email || 'Unknown'}<br />
+              Style: {deleteModal.item.style} • {new Date(deleteModal.item.created_at).toLocaleDateString()}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteModal({ isOpen: false, item: null })}
+                className="flex-1 py-2.5 rounded-lg bg-white/5 text-neutral-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteImage}
+                disabled={isDeleting}
+                className="flex-1 py-2.5 rounded-lg bg-red-500 text-white font-bold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

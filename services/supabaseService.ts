@@ -230,6 +230,121 @@ class SupabaseService {
     if (error) throw error;
     return data || [];
   }
+
+  // Image Storage methods
+  async uploadRetouchImage(
+    userId: string,
+    imageBase64: string,
+    type: 'original' | 'processed'
+  ): Promise<string> {
+    // Convert base64 to blob
+    const base64Data = imageBase64.split(',')[1];
+    const mimeType = imageBase64.split(';')[0].split(':')[1] || 'image/jpeg';
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimeType });
+
+    // Generate unique filename
+    const ext = mimeType.split('/')[1] || 'jpg';
+    const filename = `${userId}/${type}_${Date.now()}.${ext}`;
+
+    const { data, error } = await this.supabase.storage
+      .from('retouch-images')
+      .upload(filename, blob, { contentType: mimeType, upsert: false });
+
+    if (error) throw error;
+
+    // Get public URL
+    const { data: urlData } = this.supabase.storage
+      .from('retouch-images')
+      .getPublicUrl(data.path);
+
+    return urlData.publicUrl;
+  }
+
+  async saveRetouchWithImages(
+    userId: string,
+    style: string,
+    resolution: string,
+    originalBase64: string,
+    processedBase64: string
+  ): Promise<void> {
+    // Upload images
+    const [originalUrl, processedUrl] = await Promise.all([
+      this.uploadRetouchImage(userId, originalBase64, 'original'),
+      this.uploadRetouchImage(userId, processedBase64, 'processed')
+    ]);
+
+    // Save to retouch_history with URLs
+    const { error } = await this.supabase
+      .from('retouch_history')
+      .insert({
+        user_id: userId,
+        style,
+        resolution,
+        credits_used: 1,
+        original_image_url: originalUrl,
+        processed_image_url: processedUrl
+      });
+
+    if (error) throw error;
+  }
+
+  async getRetouchHistoryWithImages(userId: string): Promise<RetouchHistoryWithImages[]> {
+    const { data, error } = await this.supabase
+      .from('retouch_history')
+      .select('*')
+      .eq('user_id', userId)
+      .not('processed_image_url', 'is', null)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getAllRetouchHistoryWithImages(): Promise<(RetouchHistoryWithImages & { profiles: { email: string } })[]> {
+    const { data, error } = await this.supabase
+      .from('retouch_history')
+      .select('*, profiles(email)')
+      .not('processed_image_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    return data || [];
+  }
+
+  async deleteRetouchImage(imageUrl: string): Promise<void> {
+    // Extract path from URL
+    const urlParts = imageUrl.split('/retouch-images/');
+    if (urlParts.length < 2) return;
+    
+    const path = urlParts[1];
+    const { error } = await this.supabase.storage
+      .from('retouch-images')
+      .remove([path]);
+    
+    if (error) throw error;
+  }
+
+  async deleteRetouchHistoryItem(id: string, originalUrl?: string, processedUrl?: string): Promise<void> {
+    // Delete images from storage
+    const deletePromises = [];
+    if (originalUrl) deletePromises.push(this.deleteRetouchImage(originalUrl));
+    if (processedUrl) deletePromises.push(this.deleteRetouchImage(processedUrl));
+    
+    await Promise.all(deletePromises);
+
+    // Delete from database
+    const { error } = await this.supabase
+      .from('retouch_history')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
 }
 
 export interface CreditCode {
@@ -242,6 +357,11 @@ export interface CreditCode {
   created_by: string;
   created_at: string;
   description: string | null;
+}
+
+export interface RetouchHistoryWithImages extends RetouchHistory {
+  original_image_url: string | null;
+  processed_image_url: string | null;
 }
 
 export const supabaseService = new SupabaseService();

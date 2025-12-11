@@ -231,7 +231,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
              <button onClick={() => openPolicy('terms')} className="hover:text-white transition-colors">Terms of Service</button>
              <button onClick={() => openPolicy('contact')} className="hover:text-white transition-colors">Contact</button>
            </div>
-           <p className="text-xs text-neutral-700">&copy; 2024 Skin Retoucher AI. All rights reserved.</p>
+           <p className="text-xs text-neutral-700">&copy; 2025 Skin Retoucher AI. All rights reserved.</p>
         </div>
       </footer>
 

@@ -67,7 +67,12 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await supabaseService.signOut();
+    try {
+      await supabaseService.signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    // Always clear state even if signOut fails
     setAuthState({ user: null, profile: null, isLoading: false });
     setView('landing');
   };

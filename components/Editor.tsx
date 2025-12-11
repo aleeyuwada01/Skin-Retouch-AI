@@ -456,8 +456,19 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
         };
         setHistory(prev => [newItem, ...prev].slice(0, 5));
         
-        // Use credit via Supabase
+        // Use credit and save images to Supabase
         await useCredit(selectedStyle, selectedResolution);
+        
+        // Save images to Supabase storage (async, don't block UI)
+        if (authState.user) {
+          supabaseService.saveRetouchWithImages(
+            authState.user.id,
+            selectedStyle,
+            selectedResolution,
+            originalImage!,
+            result
+          ).catch(err => console.error('Failed to save images:', err));
+        }
 
       } catch (err: any) {
         console.error(err);
