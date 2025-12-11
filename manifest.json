@@ -1,0 +1,48 @@
+{
+  "name": "Skin Retoucher AI",
+  "short_name": "Skin Retoucher",
+  "description": "AI-powered professional skin retouching in seconds. Achieve magazine-quality results with frequency separation and dodge & burn workflows.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "any",
+  "scope": "/",
+  "id": "/",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["photo", "productivity", "utilities"],
+  "screenshots": [
+    {
+      "src": "https://i.ibb.co/rKZBymJB/after.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Professional skin retouching result"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}
