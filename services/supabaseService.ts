@@ -345,6 +345,45 @@ class SupabaseService {
     
     if (error) throw error;
   }
+
+  // App Settings methods
+  async getAppSettings(): Promise<AppSettings> {
+    const { data, error } = await this.supabase
+      .from('app_settings')
+      .select('key, value');
+    
+    if (error) throw error;
+    
+    const settings: AppSettings = {
+      free_credits_enabled: true,
+      free_credits_amount: 2,
+      free_credits_type: 'one_time'
+    };
+    
+    data?.forEach(row => {
+      if (row.key === 'free_credits_enabled') {
+        settings.free_credits_enabled = row.value === true || row.value === 'true';
+      } else if (row.key === 'free_credits_amount') {
+        settings.free_credits_amount = typeof row.value === 'number' ? row.value : parseInt(row.value, 10);
+      } else if (row.key === 'free_credits_type') {
+        settings.free_credits_type = (row.value as string).replace(/"/g, '') as 'one_time' | 'daily';
+      }
+    });
+    
+    return settings;
+  }
+
+  async updateAppSetting(key: string, value: any): Promise<void> {
+    const { error } = await this.supabase
+      .from('app_settings')
+      .upsert({ 
+        key, 
+        value: typeof value === 'string' ? value : JSON.stringify(value),
+        updated_at: new Date().toISOString()
+      });
+    
+    if (error) throw error;
+  }
 }
 
 export interface CreditCode {
@@ -362,6 +401,12 @@ export interface CreditCode {
 export interface RetouchHistoryWithImages extends RetouchHistory {
   original_image_url: string | null;
   processed_image_url: string | null;
+}
+
+export interface AppSettings {
+  free_credits_enabled: boolean;
+  free_credits_amount: number;
+  free_credits_type: 'one_time' | 'daily';
 }
 
 export const supabaseService = new SupabaseService();

@@ -13,16 +13,18 @@ import {
   Check,
   Trash2,
   Image,
-  AlertTriangle
+  AlertTriangle,
+  Settings,
+  Gift
 } from 'lucide-react';
-import { supabaseService, Profile, RetouchHistory, CreditCode, RetouchHistoryWithImages } from '../services/supabaseService';
+import { supabaseService, Profile, RetouchHistory, CreditCode, RetouchHistoryWithImages, AppSettings } from '../services/supabaseService';
 
 interface AdminPanelProps {
   onBack: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState<'users' | 'codes' | 'images' | 'history'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'codes' | 'images' | 'history' | 'settings'>('users');
   const [users, setUsers] = useState<Profile[]>([]);
   const [history, setHistory] = useState<(RetouchHistory & { profiles: { email: string } })[]>([]);
   const [retouchImages, setRetouchImages] = useState<(RetouchHistoryWithImages & { profiles: { email: string } })[]>([]);
@@ -30,6 +32,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const [stats, setStats] = useState({ totalUsers: 0, totalRetouches: 0, totalCreditsInSystem: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // App Settings state
+  const [appSettings, setAppSettings] = useState<AppSettings>({
+    free_credits_enabled: true,
+    free_credits_amount: 2,
+    free_credits_type: 'one_time'
+  });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
   
   // Grant credits modal
   const [grantModal, setGrantModal] = useState<{ isOpen: boolean; user: Profile | null }>({ isOpen: false, user: null });
@@ -56,22 +66,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [usersData, historyData, statsData, codesData, imagesData] = await Promise.all([
+      const [usersData, historyData, statsData, codesData, imagesData, settingsData] = await Promise.all([
         supabaseService.getAllUsers(),
         supabaseService.getAllRetouchHistory(),
         supabaseService.getStats(),
         supabaseService.getCreditCodes(),
-        supabaseService.getAllRetouchHistoryWithImages()
+        supabaseService.getAllRetouchHistoryWithImages(),
+        supabaseService.getAppSettings()
       ]);
       setUsers(usersData);
       setRetouchImages(imagesData);
       setHistory(historyData);
       setStats(statsData);
       setCreditCodes(codesData);
+      setAppSettings(settingsData);
     } catch (error) {
       console.error('Failed to load admin data:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    setIsSavingSettings(true);
+    try {
+      await Promise.all([
+        supabaseService.updateAppSetting('free_credits_enabled', appSettings.free_credits_enabled),
+        supabaseService.updateAppSetting('free_credits_amount', appSettings.free_credits_amount),
+        supabaseService.updateAppSetting('free_credits_type', appSettings.free_credits_type)
+      ]);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+    } finally {
+      setIsSavingSettings(false);
     }
   };
 
@@ -233,6 +260,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             }`}
           >
             History Log
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'settings' ? 'bg-[#dfff00] text-black' : 'bg-[#1a1a1a] text-neutral-400 hover:text-white'
+            }`}
+          >
+            Settings
           </button>
         </div>
 
@@ -494,6 +529,104 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'settings' && (
+              <div className="bg-[#111] border border-white/5 rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <Gift size={24} className="text-[#dfff00]" />
+                  <div>
+                    <h3 className="text-lg font-bold">Free Credits for New Users</h3>
+                    <p className="text-sm text-neutral-400">Configure welcome bonus credits for new registrations</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Enable/Disable Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-[#0a0a0a] rounded-xl">
+                    <div>
+                      <div className="font-medium">Enable Free Credits</div>
+                      <div className="text-sm text-neutral-400">New users will receive free credits on signup</div>
+                    </div>
+                    <button
+                      onClick={() => setAppSettings(prev => ({ ...prev, free_credits_enabled: !prev.free_credits_enabled }))}
+                      className={`relative w-14 h-7 rounded-full transition-colors ${
+                        appSettings.free_credits_enabled ? 'bg-[#dfff00]' : 'bg-neutral-700'
+                      }`}
+                    >
+                      <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-transform ${
+                        appSettings.free_credits_enabled ? 'left-8' : 'left-1'
+                      }`} />
+                    </button>
+                  </div>
+
+                  {/* Credits Amount */}
+                  <div className="p-4 bg-[#0a0a0a] rounded-xl">
+                    <label className="block font-medium mb-2">Credits Amount</label>
+                    <p className="text-sm text-neutral-400 mb-3">Number of free credits for each new user</p>
+                    <input
+                      type="number"
+                      value={appSettings.free_credits_amount}
+                      onChange={(e) => setAppSettings(prev => ({ ...prev, free_credits_amount: parseInt(e.target.value) || 0 }))}
+                      min={0}
+                      max={100}
+                      disabled={!appSettings.free_credits_enabled}
+                      className="w-full bg-[#111] border border-white/10 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-[#dfff00] disabled:opacity-50"
+                    />
+                  </div>
+
+                  {/* Credits Type */}
+                  <div className="p-4 bg-[#0a0a0a] rounded-xl">
+                    <label className="block font-medium mb-2">Credits Type</label>
+                    <p className="text-sm text-neutral-400 mb-3">When should users receive free credits</p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setAppSettings(prev => ({ ...prev, free_credits_type: 'one_time' }))}
+                        disabled={!appSettings.free_credits_enabled}
+                        className={`flex-1 py-3 px-4 rounded-lg border transition-colors disabled:opacity-50 ${
+                          appSettings.free_credits_type === 'one_time'
+                            ? 'border-[#dfff00] bg-[#dfff00]/10 text-[#dfff00]'
+                            : 'border-white/10 text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        <div className="font-medium">One Time</div>
+                        <div className="text-xs mt-1 opacity-70">Only on first signup</div>
+                      </button>
+                      <button
+                        onClick={() => setAppSettings(prev => ({ ...prev, free_credits_type: 'daily' }))}
+                        disabled={!appSettings.free_credits_enabled}
+                        className={`flex-1 py-3 px-4 rounded-lg border transition-colors disabled:opacity-50 ${
+                          appSettings.free_credits_type === 'daily'
+                            ? 'border-[#dfff00] bg-[#dfff00]/10 text-[#dfff00]'
+                            : 'border-white/10 text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        <div className="font-medium">Daily</div>
+                        <div className="text-xs mt-1 opacity-70">Every day (coming soon)</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <button
+                    onClick={handleSaveSettings}
+                    disabled={isSavingSettings}
+                    className="w-full py-3 rounded-xl bg-[#dfff00] text-black font-semibold hover:bg-[#c8e600] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isSavingSettings ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Settings size={18} />
+                        Save Settings
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             )}
