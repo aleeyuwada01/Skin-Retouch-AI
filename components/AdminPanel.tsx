@@ -17,14 +17,14 @@ import {
   Settings,
   Gift
 } from 'lucide-react';
-import { supabaseService, Profile, RetouchHistory, CreditCode, RetouchHistoryWithImages, AppSettings } from '../services/supabaseService';
+import { supabaseService, Profile, RetouchHistory, CreditCode, RetouchHistoryWithImages, AppSettings, Background } from '../services/supabaseService';
 
 interface AdminPanelProps {
   onBack: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState<'users' | 'codes' | 'images' | 'history' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'codes' | 'images' | 'history' | 'settings' | 'backgrounds'>('users');
   const [users, setUsers] = useState<Profile[]>([]);
   const [history, setHistory] = useState<(RetouchHistory & { profiles: { email: string } })[]>([]);
   const [retouchImages, setRetouchImages] = useState<(RetouchHistoryWithImages & { profiles: { email: string } })[]>([]);
@@ -37,9 +37,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const [appSettings, setAppSettings] = useState<AppSettings>({
     free_credits_enabled: true,
     free_credits_amount: 2,
-    free_credits_type: 'one_time'
+    free_credits_type: 'one_time',
+    retouch_cost_4k: 2,
+    retouch_cost_2k: 1,
+    retouch_cost_1k: 1,
+    background_cost: 1
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  
+  // Backgrounds state
+  const [backgrounds, setBackgrounds] = useState<Background[]>([]);
+  const [isUploadingBg, setIsUploadingBg] = useState(false);
+  const [newBgName, setNewBgName] = useState('');
+  const [bgFileInput, setBgFileInput] = useState<File | null>(null);
   
   // Grant credits modal
   const [grantModal, setGrantModal] = useState<{ isOpen: boolean; user: Profile | null }>({ isOpen: false, user: null });
@@ -66,13 +76,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [usersData, historyData, statsData, codesData, imagesData, settingsData] = await Promise.all([
+      const [usersData, historyData, statsData, codesData, imagesData, settingsData, backgroundsData] = await Promise.all([
         supabaseService.getAllUsers(),
         supabaseService.getAllRetouchHistory(),
         supabaseService.getStats(),
         supabaseService.getCreditCodes(),
         supabaseService.getAllRetouchHistoryWithImages(),
-        supabaseService.getAppSettings()
+        supabaseService.getAppSettings(),
+        supabaseService.getBackgrounds(false) // Get all backgrounds including inactive
       ]);
       setUsers(usersData);
       setRetouchImages(imagesData);
@@ -80,6 +91,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       setStats(statsData);
       setCreditCodes(codesData);
       setAppSettings(settingsData);
+      setBackgrounds(backgroundsData);
     } catch (error) {
       console.error('Failed to load admin data:', error);
     } finally {
@@ -93,12 +105,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       await Promise.all([
         supabaseService.updateAppSetting('free_credits_enabled', appSettings.free_credits_enabled),
         supabaseService.updateAppSetting('free_credits_amount', appSettings.free_credits_amount),
-        supabaseService.updateAppSetting('free_credits_type', appSettings.free_credits_type)
+        supabaseService.updateAppSetting('free_credits_type', appSettings.free_credits_type),
+        supabaseService.updateAppSetting('retouch_cost_4k', appSettings.retouch_cost_4k),
+        supabaseService.updateAppSetting('retouch_cost_2k', appSettings.retouch_cost_2k),
+        supabaseService.updateAppSetting('retouch_cost_1k', appSettings.retouch_cost_1k),
+        supabaseService.updateAppSetting('background_cost', appSettings.background_cost)
       ]);
     } catch (error) {
       console.error('Failed to save settings:', error);
     } finally {
       setIsSavingSettings(false);
+    }
+  };
+
+  const handleUploadBackground = async () => {
+    if (!bgFileInput || !newBgName.trim()) return;
+    
+    setIsUploadingBg(true);
+    try {
+      const imageUrl = await supabaseService.uploadBackgroundImage(bgFileInput);
+      await supabaseService.addBackground(newBgName.trim(), imageUrl);
+      await loadData();
+      setNewBgName('');
+      setBgFileInput(null);
+    } catch (error) {
+      console.error('Failed to upload background:', error);
+    } finally {
+      setIsUploadingBg(false);
+    }
+  };
+
+  const handleDeleteBackground = async (bg: Background) => {
+    if (!confirm(`Delete background "${bg.name}"?`)) return;
+    try {
+      await supabaseService.deleteBackground(bg.id, bg.image_url);
+      await loadData();
+    } catch (error) {
+      console.error('Failed to delete background:', error);
+    }
+  };
+
+  const handleToggleBackground = async (bg: Background) => {
+    try {
+      await supabaseService.toggleBackgroundActive(bg.id, !bg.is_active);
+      await loadData();
+    } catch (error) {
+      console.error('Failed to toggle background:', error);
     }
   };
 
@@ -268,6 +320,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             }`}
           >
             Settings
+          </button>
+          <button
+            onClick={() => setActiveTab('backgrounds')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === 'backgrounds' ? 'bg-[#dfff00] text-black' : 'bg-[#1a1a1a] text-neutral-400 hover:text-white'
+            }`}
+          >
+            Backgrounds
           </button>
         </div>
 
@@ -609,11 +669,76 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     </div>
                   </div>
 
+                  {/* Credit Costs Section */}
+                  <div className="border-t border-white/10 pt-6 mt-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <CreditCard size={24} className="text-blue-400" />
+                      <div>
+                        <h3 className="text-lg font-bold">Credit Costs</h3>
+                        <p className="text-sm text-neutral-400">Set how many credits each action costs</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Retouch 4K */}
+                      <div className="p-4 bg-[#0a0a0a] rounded-xl">
+                        <label className="block font-medium mb-2">Retouch (4K)</label>
+                        <input
+                          type="number"
+                          value={appSettings.retouch_cost_4k}
+                          onChange={(e) => setAppSettings(prev => ({ ...prev, retouch_cost_4k: parseInt(e.target.value) || 1 }))}
+                          min={1}
+                          max={100}
+                          className="w-full bg-[#111] border border-white/10 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-[#dfff00]"
+                        />
+                      </div>
+
+                      {/* Retouch 2K */}
+                      <div className="p-4 bg-[#0a0a0a] rounded-xl">
+                        <label className="block font-medium mb-2">Retouch (2K)</label>
+                        <input
+                          type="number"
+                          value={appSettings.retouch_cost_2k}
+                          onChange={(e) => setAppSettings(prev => ({ ...prev, retouch_cost_2k: parseInt(e.target.value) || 1 }))}
+                          min={1}
+                          max={100}
+                          className="w-full bg-[#111] border border-white/10 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-[#dfff00]"
+                        />
+                      </div>
+
+                      {/* Retouch 1K */}
+                      <div className="p-4 bg-[#0a0a0a] rounded-xl">
+                        <label className="block font-medium mb-2">Retouch (1K)</label>
+                        <input
+                          type="number"
+                          value={appSettings.retouch_cost_1k}
+                          onChange={(e) => setAppSettings(prev => ({ ...prev, retouch_cost_1k: parseInt(e.target.value) || 1 }))}
+                          min={1}
+                          max={100}
+                          className="w-full bg-[#111] border border-white/10 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-[#dfff00]"
+                        />
+                      </div>
+
+                      {/* Background Change */}
+                      <div className="p-4 bg-[#0a0a0a] rounded-xl">
+                        <label className="block font-medium mb-2">Background Change</label>
+                        <input
+                          type="number"
+                          value={appSettings.background_cost}
+                          onChange={(e) => setAppSettings(prev => ({ ...prev, background_cost: parseInt(e.target.value) || 1 }))}
+                          min={1}
+                          max={100}
+                          className="w-full bg-[#111] border border-white/10 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-[#dfff00]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Save Button */}
                   <button
                     onClick={handleSaveSettings}
                     disabled={isSavingSettings}
-                    className="w-full py-3 rounded-xl bg-[#dfff00] text-black font-semibold hover:bg-[#c8e600] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-xl bg-[#dfff00] text-black font-semibold hover:bg-[#c8e600] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-6"
                   >
                     {isSavingSettings ? (
                       <>
@@ -627,6 +752,92 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                       </>
                     )}
                   </button>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'backgrounds' && (
+              <div className="space-y-6">
+                {/* Upload New Background */}
+                <div className="bg-[#111] border border-white/5 rounded-xl p-6">
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <Image size={20} className="text-[#dfff00]" />
+                    Add New Background
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs text-neutral-400 uppercase mb-1 block">Name</label>
+                      <input
+                        type="text"
+                        value={newBgName}
+                        onChange={(e) => setNewBgName(e.target.value)}
+                        placeholder="e.g., Studio Gray"
+                        className="w-full bg-[#0a0a0a] border border-white/10 rounded-lg py-2 px-3 text-white placeholder-neutral-600 focus:outline-none focus:border-[#dfff00]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-neutral-400 uppercase mb-1 block">Image File</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setBgFileInput(e.target.files?.[0] || null)}
+                        className="w-full bg-[#0a0a0a] border border-white/10 rounded-lg py-2 px-3 text-white file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-[#dfff00] file:text-black file:font-medium file:cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={handleUploadBackground}
+                        disabled={isUploadingBg || !bgFileInput || !newBgName.trim()}
+                        className="w-full py-2.5 rounded-lg bg-[#dfff00] text-black font-bold hover:bg-[#ccff00] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {isUploadingBg ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                        Upload
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Backgrounds Grid */}
+                <div className="bg-[#111] border border-white/5 rounded-xl p-6">
+                  <h3 className="text-lg font-bold mb-4">Manage Backgrounds ({backgrounds.length})</h3>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {backgrounds.map((bg) => (
+                      <div key={bg.id} className={`relative group rounded-xl overflow-hidden border-2 ${bg.is_active ? 'border-green-500/50' : 'border-red-500/50 opacity-60'}`}>
+                        <img src={bg.image_url} alt={bg.name} className="w-full aspect-[4/3] object-cover" />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                          <span className="text-xs font-medium text-white text-center px-2">{bg.name}</span>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleToggleBackground(bg)}
+                              className={`p-1.5 rounded-lg ${bg.is_active ? 'bg-yellow-500' : 'bg-green-500'} text-white`}
+                              title={bg.is_active ? 'Disable' : 'Enable'}
+                            >
+                              {bg.is_active ? <AlertTriangle size={14} /> : <Check size={14} />}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteBackground(bg)}
+                              className="p-1.5 rounded-lg bg-red-500 text-white"
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        {!bg.is_active && (
+                          <div className="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded">
+                            Disabled
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {backgrounds.length === 0 && (
+                      <div className="col-span-full text-center py-12 text-neutral-500">
+                        No backgrounds uploaded yet. Add some above!
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

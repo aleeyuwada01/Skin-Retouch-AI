@@ -357,7 +357,11 @@ class SupabaseService {
     const settings: AppSettings = {
       free_credits_enabled: true,
       free_credits_amount: 2,
-      free_credits_type: 'one_time'
+      free_credits_type: 'one_time',
+      retouch_cost_4k: 2,
+      retouch_cost_2k: 1,
+      retouch_cost_1k: 1,
+      background_cost: 1
     };
     
     data?.forEach(row => {
@@ -367,6 +371,14 @@ class SupabaseService {
         settings.free_credits_amount = typeof row.value === 'number' ? row.value : parseInt(row.value, 10);
       } else if (row.key === 'free_credits_type') {
         settings.free_credits_type = (row.value as string).replace(/"/g, '') as 'one_time' | 'daily';
+      } else if (row.key === 'retouch_cost_4k') {
+        settings.retouch_cost_4k = typeof row.value === 'number' ? row.value : parseInt(row.value, 10);
+      } else if (row.key === 'retouch_cost_2k') {
+        settings.retouch_cost_2k = typeof row.value === 'number' ? row.value : parseInt(row.value, 10);
+      } else if (row.key === 'retouch_cost_1k') {
+        settings.retouch_cost_1k = typeof row.value === 'number' ? row.value : parseInt(row.value, 10);
+      } else if (row.key === 'background_cost') {
+        settings.background_cost = typeof row.value === 'number' ? row.value : parseInt(row.value, 10);
       }
     });
     
@@ -383,6 +395,142 @@ class SupabaseService {
       });
     
     if (error) throw error;
+  }
+
+  // Background management methods
+  async getBackgrounds(activeOnly: boolean = true): Promise<Background[]> {
+    let query = this.supabase
+      .from('backgrounds')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    
+    if (activeOnly) {
+      query = query.eq('is_active', true);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }
+
+  async uploadBackgroundImage(file: File): Promise<string> {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const filename = `bg_${Date.now()}.${ext}`;
+
+    const { data, error } = await this.supabase.storage
+      .from('backgrounds')
+      .upload(filename, file, { contentType: file.type, upsert: false });
+
+    if (error) throw error;
+
+    const { data: urlData } = this.supabase.storage
+      .from('backgrounds')
+      .getPublicUrl(data.path);
+
+    return urlData.publicUrl;
+  }
+
+  async addBackground(name: string, imageUrl: string): Promise<Background> {
+    // Get max sort_order
+    const { data: existing } = await this.supabase
+      .from('backgrounds')
+      .select('sort_order')
+      .order('sort_order', { ascending: false })
+      .limit(1);
+    
+    const nextOrder = (existing?.[0]?.sort_order || 0) + 1;
+
+    const { data, error } = await this.supabase
+      .from('backgrounds')
+      .insert({
+        name,
+        image_url: imageUrl,
+        sort_order: nextOrder,
+        is_active: true
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async deleteBackground(id: string, imageUrl: string): Promise<void> {
+    // Delete from storage
+    const urlParts = imageUrl.split('/backgrounds/');
+    if (urlParts.length >= 2) {
+      const path = urlParts[1];
+      await this.supabase.storage.from('backgrounds').remove([path]);
+    }
+
+    // Delete from database
+    const { error } = await this.supabase
+      .from('backgrounds')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  async toggleBackgroundActive(id: string, isActive: boolean): Promise<void> {
+    const { error } = await this.supabase
+      .from('backgrounds')
+      .update({ is_active: isActive, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  // Get credit cost for a specific resolution
+  async getCreditCost(resolution: '1K' | '2K' | '4K'): Promise<number> {
+    const settings = await this.getAppSettings();
+    switch (resolution) {
+      case '4K': return settings.retouch_cost_4k;
+      case '2K': return settings.retouch_cost_2k;
+      case '1K': return settings.retouch_cost_1k;
+      default: return 1;
+    }
+  }
+
+  // Use multiple credits
+  async useCredits(userId: string, amount: number, style: string, resolution: string): Promise<boolean> {
+    // First check if user has enough credits
+    const profile = await this.getProfile(userId);
+    if (!profile || profile.credits < amount) return false;
+
+    // Deduct credits
+    const { error: updateError } = await this.supabase
+      .from('profiles')
+      .update({ credits: profile.credits - amount })
+      .eq('id', userId);
+    
+    if (updateError) throw updateError;
+
+    // Log transaction
+    const { error: txError } = await this.supabase
+      .from('credit_transactions')
+      .insert({
+        user_id: userId,
+        amount: -amount,
+        type: 'usage',
+        description: `${style} at ${resolution}`
+      });
+    
+    if (txError) console.error('Failed to log transaction:', txError);
+
+    // Log to retouch history
+    const { error: histError } = await this.supabase
+      .from('retouch_history')
+      .insert({
+        user_id: userId,
+        style,
+        resolution,
+        credits_used: amount
+      });
+    
+    if (histError) console.error('Failed to log history:', histError);
+
+    return true;
   }
 }
 
@@ -407,6 +555,20 @@ export interface AppSettings {
   free_credits_enabled: boolean;
   free_credits_amount: number;
   free_credits_type: 'one_time' | 'daily';
+  retouch_cost_4k: number;
+  retouch_cost_2k: number;
+  retouch_cost_1k: number;
+  background_cost: number;
+}
+
+export interface Background {
+  id: string;
+  name: string;
+  image_url: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export const supabaseService = new SupabaseService();

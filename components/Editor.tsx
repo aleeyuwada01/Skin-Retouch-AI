@@ -14,13 +14,15 @@ import {
   Menu,
   CheckCircle,
   XCircle,
-  RefreshCw
+  RefreshCw,
+  ImageIcon
 } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { ComparisonSlider } from './ComparisonSlider';
 import { TipsModal } from './TipsModal';
 import { FolderModal } from './FolderModal';
 import { TutorialOverlay } from './TutorialOverlay';
+import { BackgroundModal } from './BackgroundModal';
 import { EnhanceStyle, HistoryItem, ProcessingState, BatchItem } from '../types';
 import { geminiService } from '../services/geminiService';
 import { supabaseService } from '../services/supabaseService';
@@ -95,10 +97,47 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
   const [redeemSuccess, setRedeemSuccess] = useState<string | null>(null);
   const [isRedeeming, setIsRedeeming] = useState(false);
   
+  // Background Changer State
+  const [isBackgroundModalOpen, setIsBackgroundModalOpen] = useState(false);
+  const [isChangingBackground, setIsChangingBackground] = useState(false);
+  
+  // Credit costs state
+  const [creditCosts, setCreditCosts] = useState({
+    retouch_cost_4k: 2,
+    retouch_cost_2k: 1,
+    retouch_cost_1k: 1,
+    background_cost: 1
+  });
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
 
 
+
+  // Load credit costs on mount
+  useEffect(() => {
+    const loadCreditCosts = async () => {
+      try {
+        const settings = await supabaseService.getAppSettings();
+        setCreditCosts({
+          retouch_cost_4k: settings.retouch_cost_4k,
+          retouch_cost_2k: settings.retouch_cost_2k,
+          retouch_cost_1k: settings.retouch_cost_1k,
+          background_cost: settings.background_cost
+        });
+      } catch (error) {
+        console.error('Failed to load credit costs:', error);
+      }
+    };
+    loadCreditCosts();
+  }, []);
+
+  // Get current retouch cost based on resolution
+  const currentRetouchCost = selectedResolution === '4K' 
+    ? creditCosts.retouch_cost_4k 
+    : selectedResolution === '2K' 
+      ? creditCosts.retouch_cost_2k 
+      : creditCosts.retouch_cost_1k;
 
   // Tutorial logic - show only for new users, max 3 times
   useEffect(() => {
@@ -119,16 +158,16 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
     localStorage.setItem('skinRetoucher_tutorialDisabled', 'true');
   };
 
-  const useCredit = async (style: string, resolution: string) => {
+  const useCredits = async (style: string, resolution: string, amount: number) => {
     if (!authState.user) return false;
     try {
-      const success = await supabaseService.useCredit(authState.user.id, style, resolution);
+      const success = await supabaseService.useCredits(authState.user.id, amount, style, resolution);
       if (success) {
         onRefreshProfile(); // Refresh profile to get updated credits
       }
       return success;
     } catch (error) {
-      console.error('Failed to use credit:', error);
+      console.error('Failed to use credits:', error);
       return false;
     }
   };
@@ -363,8 +402,8 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
       };
       setHistory(prev => [newItem, ...prev].slice(0, 5));
       
-      // Use credit via Supabase
-      await useCredit('smooth_more', selectedResolution);
+      // Use credits via Supabase
+      await useCredits('smooth_more', selectedResolution, currentRetouchCost);
     } catch (err: any) {
       console.error(err);
       const errorMsg = err.message?.includes("No candidates") 
@@ -374,6 +413,53 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
         status: 'error', 
         error: errorMsg
       });
+    }
+  };
+
+  const handleChangeBackground = async (backgroundPath: string) => {
+    if (!processedImage || remainingCredits <= 0 || !authState.user) return;
+    
+    setIsChangingBackground(true);
+    
+    try {
+      // Fetch the background image and convert to base64
+      const response = await fetch(backgroundPath);
+      const blob = await response.blob();
+      const backgroundBase64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsDataURL(blob);
+      });
+      
+      // Call Gemini to replace background
+      const result = await geminiService.replaceBackground(
+        processedImage,
+        backgroundBase64,
+        selectedResolution
+      );
+      
+      // Update the processed image with new background
+      setProcessedImage(result);
+      setIsBackgroundModalOpen(false);
+      
+      // Save to history
+      const newItem: HistoryItem = {
+        id: Date.now().toString(),
+        original: originalImage!,
+        processed: result,
+        style: selectedStyle,
+        timestamp: Date.now()
+      };
+      setHistory(prev => [newItem, ...prev].slice(0, 5));
+      
+      // Use credits via Supabase
+      await useCredits('background_change', selectedResolution, creditCosts.background_cost);
+      
+    } catch (err: any) {
+      console.error('Background change failed:', err);
+      alert(err.message || 'Failed to change background. Please try again.');
+    } finally {
+      setIsChangingBackground(false);
     }
   };
 
@@ -425,8 +511,8 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
              };
              setHistory(prev => [newItem, ...prev].slice(0, 5));
              
-             // Use credit via Supabase
-             await useCredit(selectedStyle, selectedResolution);
+             // Use credits via Supabase
+             await useCredits(selectedStyle, selectedResolution, currentRetouchCost);
 
           } catch (error) {
              console.error(error);
@@ -456,8 +542,8 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
         };
         setHistory(prev => [newItem, ...prev].slice(0, 5));
         
-        // Use credit and save images to Supabase
-        await useCredit(selectedStyle, selectedResolution);
+        // Use credits and save images to Supabase
+        await useCredits(selectedStyle, selectedResolution, currentRetouchCost);
         
         // Save images to Supabase storage (async, don't block UI)
         if (authState.user) {
@@ -778,6 +864,18 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
                    </button>
                  )}
                  
+                 {/* Change Background Button */}
+                 {processedImage && processingState.status === 'complete' && remainingCredits >= creditCosts.background_cost && (
+                   <button
+                     onClick={() => setIsBackgroundModalOpen(true)}
+                     className="bg-[#1a1a1a] px-3 py-1.5 rounded-xl border border-white/5 shadow-xl flex items-center gap-2 hover:bg-[#252525] transition-colors group"
+                     title="Change background"
+                   >
+                     <ImageIcon size={14} className="text-[#3b82f6]" />
+                     <span className="text-xs font-medium text-neutral-300">Change BG ({creditCosts.background_cost})</span>
+                   </button>
+                 )}
+                 
                  {/* Resolution Selector */}
                  <div className="bg-[#1a1a1a] p-1.5 rounded-xl border border-white/5 shadow-xl flex items-center gap-1 relative" data-tutorial="resolution-selector">
                    <button 
@@ -847,6 +945,7 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
         remainingCredits={remainingCredits}
         batchCount={batchQueue.length}
         onTopUp={() => setIsRedeemModalOpen(true)}
+        creditCost={currentRetouchCost}
       />
 
       <input 
@@ -930,6 +1029,16 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
           </div>
         </div>
       )}
+
+      {/* Background Changer Modal */}
+      <BackgroundModal
+        isOpen={isBackgroundModalOpen}
+        onClose={() => setIsBackgroundModalOpen(false)}
+        onSelectBackground={handleChangeBackground}
+        isProcessing={isChangingBackground}
+        remainingCredits={remainingCredits}
+        creditCost={creditCosts.background_cost}
+      />
     </div>
   );
 };

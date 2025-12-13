@@ -19,6 +19,7 @@ interface SidebarProps {
   onClose?: () => void;
   batchCount?: number;
   onTopUp?: () => void;
+  creditCost?: number;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -34,7 +35,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpen = false,
   onClose,
   batchCount = 0,
-  onTopUp
+  onTopUp,
+  creditCost = 1
 }) => {
   const isOutOfCredits = remainingCredits <= 0;
   const isBatch = batchCount > 1;
@@ -200,12 +202,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={onEnhance} 
               isLoading={isProcessing} 
               className="w-full font-bold text-sm h-12"
-              disabled={!hasImage || !canEnhance}
+              disabled={!hasImage || !canEnhance || remainingCredits < creditCost}
               data-tutorial="enhance-button"
             >
               {isProcessing ? 'Processing...' : (
                 <span className="flex items-center gap-2">
-                  {isBatch ? `Batch Retouch (${batchCount})` : 'Retouch Image'}
+                  {isBatch ? `Batch Retouch (${batchCount})` : `Retouch Image (${creditCost} credit${creditCost > 1 ? 's' : ''})`}
                   {isBatch ? <Layers size={14} className="fill-current" /> : <Sparkles size={14} className="fill-current" />}
                 </span>
               )}

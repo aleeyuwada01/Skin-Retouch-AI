@@ -200,6 +200,146 @@ Keep the same aspect ratio and dimensions.`;
       throw new Error(error.message || "Failed to process image. Please try again.");
     }
   }
+
+  async replaceBackground(
+    portraitBase64: string,
+    backgroundBase64: string,
+    resolution: '1K' | '2K' | '4K' = '4K'
+  ): Promise<string> {
+    console.log("=== BACKGROUND REPLACEMENT ===");
+    
+    try {
+      // Detect MIME types
+      const portraitMimeMatch = portraitBase64.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+      const portraitMimeType = portraitMimeMatch ? portraitMimeMatch[1] : 'image/jpeg';
+      const cleanPortraitBase64 = portraitBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
+
+      const bgMimeMatch = backgroundBase64.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+      const bgMimeType = bgMimeMatch ? bgMimeMatch[1] : 'image/jpeg';
+      const cleanBgBase64 = backgroundBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
+
+      const promptText = `BACKGROUND REPLACEMENT TASK
+
+IMAGE 1 (FIRST): Portrait of a person - THIS CONTROLS THE OUTPUT SIZE
+IMAGE 2 (SECOND): Reference background to use
+
+TASK: Cut out the person from IMAGE 1 and place them on the background from IMAGE 2.
+
+=== CRITICAL: OUTPUT DIMENSIONS ===
+The output image MUST have the EXACT SAME WIDTH and HEIGHT as IMAGE 1 (the portrait).
+DO NOT use the dimensions of IMAGE 2 (the background).
+DO NOT change the aspect ratio.
+DO NOT crop or resize.
+The portrait image dimensions are the MASTER - copy them exactly.
+
+=== CRITICAL: SIGMA 85mm f/1.4 LENS BLUR ===
+Apply STRONG GAUSSIAN BLUR to the ENTIRE background - simulate Sigma Art 85mm f/1.4 wide open.
+BLUR STRENGTH: Heavy blur - the background should be very soft and dreamy, like shot at f/1.4
+The blur must be UNIFORM across 100% of the background - every pixel blurred equally
+NO sharp areas in background - everything behind the subject must be soft
+This creates professional portrait separation - sharp subject, creamy blurred background
+
+=== CRITICAL: USE EXACT REFERENCE BACKGROUND ===
+Use the EXACT background from IMAGE 2 - same colors, same scene, same everything
+DO NOT change the background colors or generate a different background
+DO NOT modify what the background looks like - just blur it
+The background should be recognizable as IMAGE 2, just with blur applied
+
+=== BLENDING ===
+Blend the person naturally into the background:
+- Match lighting direction and color temperature
+- Smooth edges around hair and body - no visible cutout lines
+- Add subtle shadows where person meets ground/surface
+- The composite should look like one real photograph
+
+=== PRESERVE ===
+- Person's exact appearance, size, position from IMAGE 1
+- All skin retouching quality
+- Sharp focus on the subject
+
+=== FORBIDDEN ===
+- Changing output dimensions (MUST match IMAGE 1)
+- Sharp/unblurred background areas
+- Visible edges or halos around person
+- Changing the reference background's appearance
+- Using background's aspect ratio instead of portrait's
+
+OUTPUT: Single image with person sharp, background uniformly blurred with Sigma f/1.4 bokeh, dimensions matching IMAGE 1.`;
+
+      const safetySettings: any[] = [
+        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+      ];
+
+      const response = await this.ai.models.generateContent({
+        model: 'gemini-3-pro-image-preview',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                mimeType: portraitMimeType,
+                data: cleanPortraitBase64
+              }
+            },
+            {
+              inlineData: {
+                mimeType: bgMimeType,
+                data: cleanBgBase64
+              }
+            },
+            {
+              text: promptText
+            }
+          ]
+        },
+        config: {
+          safetySettings: safetySettings,
+          responseModalities: ['TEXT', 'IMAGE'],
+          imageConfig: {
+            imageSize: resolution
+          }
+        }
+      });
+
+      const candidate = response.candidates?.[0];
+      
+      if (!candidate) {
+        throw new Error("No candidates returned. The request may have failed.");
+      }
+
+      if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+        if (candidate.finishReason === 'SAFETY') {
+          throw new Error("Generation was blocked by safety filters. Please try a different image.");
+        }
+        throw new Error(`Generation stopped due to: ${candidate.finishReason}`);
+      }
+
+      const parts = candidate.content?.parts;
+      
+      if (!parts || parts.length === 0) {
+        throw new Error("No content generated.");
+      }
+
+      for (const part of parts) {
+        if (part.inlineData && part.inlineData.data) {
+          return `data:image/jpeg;base64,${part.inlineData.data}`;
+        }
+      }
+
+      throw new Error("No image data found in response");
+
+    } catch (error: any) {
+      console.error("=== BACKGROUND REPLACEMENT ERROR ===", error);
+      
+      if (error.message?.includes('429') || error.message?.includes('rate limit')) {
+        throw new Error("Too many requests. Please wait a moment and try again.");
+      }
+      
+      throw new Error(error.message || "Failed to replace background. Please try again.");
+    }
+  }
 }
 
 export const geminiService = new GeminiService();
