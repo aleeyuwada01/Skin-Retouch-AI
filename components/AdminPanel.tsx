@@ -15,16 +15,18 @@ import {
   Image,
   AlertTriangle,
   Settings,
-  Gift
+  Gift,
+  Mail,
+  MessageSquare
 } from 'lucide-react';
-import { supabaseService, Profile, RetouchHistory, CreditCode, RetouchHistoryWithImages, AppSettings, Background } from '../services/supabaseService';
+import { supabaseService, Profile, RetouchHistory, CreditCode, RetouchHistoryWithImages, AppSettings, Background, ContactSubmission } from '../services/supabaseService';
 
 interface AdminPanelProps {
   onBack: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState<'users' | 'codes' | 'images' | 'history' | 'settings' | 'backgrounds'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'codes' | 'images' | 'history' | 'settings' | 'backgrounds' | 'contacts'>('users');
   const [users, setUsers] = useState<Profile[]>([]);
   const [history, setHistory] = useState<(RetouchHistory & { profiles: { email: string } })[]>([]);
   const [retouchImages, setRetouchImages] = useState<(RetouchHistoryWithImages & { profiles: { email: string } })[]>([]);
@@ -51,6 +53,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const [newBgName, setNewBgName] = useState('');
   const [bgFileInput, setBgFileInput] = useState<File | null>(null);
   
+  // Contact submissions state
+  const [contactSubmissions, setContactSubmissions] = useState<ContactSubmission[]>([]);
+  
   // Grant credits modal
   const [grantModal, setGrantModal] = useState<{ isOpen: boolean; user: Profile | null }>({ isOpen: false, user: null });
   const [grantAmount, setGrantAmount] = useState(10);
@@ -76,14 +81,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [usersData, historyData, statsData, codesData, imagesData, settingsData, backgroundsData] = await Promise.all([
+      const [usersData, historyData, statsData, codesData, imagesData, settingsData, backgroundsData, contactsData] = await Promise.all([
         supabaseService.getAllUsers(),
         supabaseService.getAllRetouchHistory(),
         supabaseService.getStats(),
         supabaseService.getCreditCodes(),
         supabaseService.getAllRetouchHistoryWithImages(),
         supabaseService.getAppSettings(),
-        supabaseService.getBackgrounds(false) // Get all backgrounds including inactive
+        supabaseService.getBackgrounds(false), // Get all backgrounds including inactive
+        supabaseService.getContactSubmissions()
       ]);
       setUsers(usersData);
       setRetouchImages(imagesData);
@@ -92,6 +98,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       setCreditCodes(codesData);
       setAppSettings(settingsData);
       setBackgrounds(backgroundsData);
+      setContactSubmissions(contactsData);
     } catch (error) {
       console.error('Failed to load admin data:', error);
     } finally {
@@ -328,6 +335,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             }`}
           >
             Backgrounds
+          </button>
+          <button
+            onClick={() => setActiveTab('contacts')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors relative ${
+              activeTab === 'contacts' ? 'bg-[#dfff00] text-black' : 'bg-[#1a1a1a] text-neutral-400 hover:text-white'
+            }`}
+          >
+            Contacts
+            {contactSubmissions.filter(c => c.status === 'new').length > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                {contactSubmissions.filter(c => c.status === 'new').length}
+              </span>
+            )}
           </button>
         </div>
 
@@ -838,6 +858,77 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'contacts' && (
+              <div className="bg-[#111] border border-white/5 rounded-xl overflow-hidden">
+                <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare size={18} className="text-[#dfff00]" />
+                    <span className="font-medium">Contact Submissions</span>
+                    <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full text-neutral-400">
+                      {contactSubmissions.length} total
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="divide-y divide-white/5">
+                  {contactSubmissions.map((contact) => (
+                    <div key={contact.id} className={`p-4 ${contact.status === 'new' ? 'bg-blue-900/10' : ''}`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-mono text-xs text-[#dfff00]">{contact.ticket_number}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              contact.status === 'new' ? 'bg-blue-500/20 text-blue-400' :
+                              contact.status === 'read' ? 'bg-yellow-500/20 text-yellow-400' :
+                              contact.status === 'replied' ? 'bg-green-500/20 text-green-400' :
+                              'bg-neutral-500/20 text-neutral-400'
+                            }`}>
+                              {contact.status}
+                            </span>
+                          </div>
+                          <p className="font-medium text-white">
+                            {contact.first_name} {contact.last_name}
+                          </p>
+                          <p className="text-sm text-neutral-400">{contact.email}</p>
+                          {contact.phone && <p className="text-sm text-neutral-500">{contact.phone}</p>}
+                          <p className="text-sm text-neutral-300 mt-2 whitespace-pre-wrap">{contact.message}</p>
+                          <p className="text-xs text-neutral-600 mt-2">
+                            {new Date(contact.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <select
+                            value={contact.status}
+                            onChange={async (e) => {
+                              await supabaseService.updateContactStatus(contact.id, e.target.value);
+                              await loadData();
+                            }}
+                            className="bg-[#1a1a1a] border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                          >
+                            <option value="new">New</option>
+                            <option value="read">Read</option>
+                            <option value="replied">Replied</option>
+                            <option value="closed">Closed</option>
+                          </select>
+                          <a
+                            href={`mailto:${contact.email}?subject=Re: ${contact.ticket_number}`}
+                            className="text-xs bg-[#dfff00] text-black px-3 py-1.5 rounded-lg font-medium text-center hover:bg-[#ccff00]"
+                          >
+                            Reply
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {contactSubmissions.length === 0 && (
+                    <div className="p-8 text-center text-neutral-500">
+                      No contact submissions yet
+                    </div>
+                  )}
                 </div>
               </div>
             )}

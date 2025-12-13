@@ -1,8 +1,147 @@
-import React from 'react';
-import { X, FileText, Mail, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, FileText, Mail, Shield, Loader2, CheckCircle } from 'lucide-react';
 import { Button } from './Button';
+import { supabaseService } from '../services/supabaseService';
 
 export type PolicyType = 'privacy' | 'terms' | 'contact' | null;
+
+// Contact Form Component
+const ContactForm: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [ticketNumber, setTicketNumber] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.message) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    const result = await supabaseService.submitContactForm(formData);
+    
+    if (result.success) {
+      setSubmitted(true);
+      setTicketNumber(result.ticketNumber || null);
+    } else {
+      setError(result.error || 'Failed to submit. Please try again.');
+    }
+    
+    setIsSubmitting(false);
+  };
+
+  if (submitted) {
+    return (
+      <div className="text-center py-8">
+        <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle size={32} className="text-green-400" />
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">Message Sent!</h3>
+        <p className="text-neutral-400 mb-4">Thank you for contacting us. We'll get back to you soon.</p>
+        {ticketNumber && (
+          <div className="bg-[#1a1a1a] border border-neutral-800 rounded-xl p-4 mb-6">
+            <p className="text-xs text-neutral-500 mb-1">Your Ticket Number</p>
+            <p className="text-lg font-mono font-bold text-[#dfff00]">{ticketNumber}</p>
+            <p className="text-xs text-neutral-500 mt-2">Save this for your reference</p>
+          </div>
+        )}
+        <Button onClick={onClose} className="w-full">Close</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <p className="text-neutral-400 text-sm">Have a question or feedback? We'd love to hear from you. Fill out the form below and we'll get back to you as soon as possible.</p>
+      
+      <form className="space-y-4" onSubmit={handleSubmit}>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-neutral-400 uppercase">First Name *</label>
+            <input 
+              type="text" 
+              value={formData.firstName}
+              onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+              className="w-full bg-[#1a1a1a] border border-neutral-800 rounded-xl p-3 text-white focus:border-[#dfff00] focus:outline-none" 
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-neutral-400 uppercase">Last Name *</label>
+            <input 
+              type="text" 
+              value={formData.lastName}
+              onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+              className="w-full bg-[#1a1a1a] border border-neutral-800 rounded-xl p-3 text-white focus:border-[#dfff00] focus:outline-none" 
+              required
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-neutral-400 uppercase">Email *</label>
+            <input 
+              type="email" 
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              className="w-full bg-[#1a1a1a] border border-neutral-800 rounded-xl p-3 text-white focus:border-[#dfff00] focus:outline-none" 
+              required
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-neutral-400 uppercase">Phone (Optional)</label>
+            <input 
+              type="tel" 
+              value={formData.phone}
+              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+              className="w-full bg-[#1a1a1a] border border-neutral-800 rounded-xl p-3 text-white focus:border-[#dfff00] focus:outline-none" 
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-semibold text-neutral-400 uppercase">Message *</label>
+          <textarea 
+            rows={4} 
+            value={formData.message}
+            onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+            className="w-full bg-[#1a1a1a] border border-neutral-800 rounded-xl p-3 text-white focus:border-[#dfff00] focus:outline-none resize-none"
+            required
+          ></textarea>
+        </div>
+
+        {error && (
+          <div className="p-3 bg-red-900/20 border border-red-900/50 rounded-lg text-red-200 text-sm">
+            {error}
+          </div>
+        )}
+
+        <Button className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <span className="flex items-center gap-2">
+              <Loader2 size={16} className="animate-spin" />
+              Sending...
+            </span>
+          ) : (
+            'Send Message'
+          )}
+        </Button>
+      </form>
+    </div>
+  );
+};
 
 interface PolicyModalProps {
   isOpen: boolean;
@@ -77,34 +216,7 @@ export const PolicyModal: React.FC<PolicyModalProps> = ({ isOpen, onClose, type 
           )}
 
           {type === 'contact' && (
-            <div className="space-y-6">
-              <p className="text-neutral-400 text-sm">Have a question or feedback? We'd love to hear from you. Fill out the form below and we'll get back to you as soon as possible.</p>
-              
-              <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); onClose(); alert('Message sent!'); }}>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-neutral-400 uppercase">First Name</label>
-                    <input type="text" className="w-full bg-[#1a1a1a] border border-neutral-800 rounded-xl p-3 text-white focus:border-[#dfff00] focus:outline-none" />
-                  </div>
-                  <div className="space-y-1.5">
-                     <label className="text-xs font-semibold text-neutral-400 uppercase">Last Name</label>
-                    <input type="text" className="w-full bg-[#1a1a1a] border border-neutral-800 rounded-xl p-3 text-white focus:border-[#dfff00] focus:outline-none" />
-                  </div>
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-neutral-400 uppercase">Email</label>
-                  <input type="email" className="w-full bg-[#1a1a1a] border border-neutral-800 rounded-xl p-3 text-white focus:border-[#dfff00] focus:outline-none" />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-neutral-400 uppercase">Message</label>
-                  <textarea rows={4} className="w-full bg-[#1a1a1a] border border-neutral-800 rounded-xl p-3 text-white focus:border-[#dfff00] focus:outline-none resize-none"></textarea>
-                </div>
-
-                <Button className="w-full">Send Message</Button>
-              </form>
-            </div>
+            <ContactForm onClose={onClose} />
           )}
         </div>
 

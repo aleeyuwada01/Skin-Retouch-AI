@@ -532,6 +532,64 @@ class SupabaseService {
 
     return true;
   }
+
+  // Contact form methods
+  async submitContactForm(data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    message: string;
+  }): Promise<{ success: boolean; ticketNumber?: string; error?: string }> {
+    try {
+      // Generate ticket number
+      const { data: countData } = await this.supabase
+        .from('contact_submissions')
+        .select('id', { count: 'exact', head: true });
+      
+      const count = (countData as any)?.length || 0;
+      const ticketNumber = `TKT-${String(count + 1).padStart(6, '0')}`;
+
+      const { error } = await this.supabase
+        .from('contact_submissions')
+        .insert({
+          ticket_number: ticketNumber,
+          first_name: data.firstName,
+          last_name: data.lastName,
+          email: data.email,
+          phone: data.phone || null,
+          message: data.message,
+          status: 'new'
+        });
+
+      if (error) throw error;
+      return { success: true, ticketNumber };
+    } catch (error: any) {
+      console.error('Failed to submit contact form:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getContactSubmissions(): Promise<ContactSubmission[]> {
+    const { data, error } = await this.supabase
+      .from('contact_submissions')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  async updateContactStatus(id: string, status: string, adminNotes?: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('contact_submissions')
+      .update({ 
+        status, 
+        admin_notes: adminNotes,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id);
+    if (error) throw error;
+  }
 }
 
 export interface CreditCode {
@@ -567,6 +625,20 @@ export interface Background {
   image_url: string;
   sort_order: number;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContactSubmission {
+  id: string;
+  ticket_number: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  message: string;
+  status: 'new' | 'read' | 'replied' | 'closed';
+  admin_notes: string | null;
   created_at: string;
   updated_at: string;
 }
