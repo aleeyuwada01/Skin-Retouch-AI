@@ -213,6 +213,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
             </Button>
           )}
+          
+          {/* AI Disclaimer */}
+          <p className="text-[10px] text-neutral-500 text-center mt-3 leading-relaxed">
+            AI results may vary. We're continuously improving.
+          </p>
         </div>
       </aside>
     </>

@@ -231,6 +231,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
              <button onClick={() => openPolicy('terms')} className="hover:text-white transition-colors">Terms of Service</button>
              <button onClick={() => openPolicy('contact')} className="hover:text-white transition-colors">Contact</button>
            </div>
+           {/* AI Disclaimer */}
+           <p className="text-xs text-neutral-500 max-w-lg leading-relaxed">
+             This service uses AI technology which may occasionally produce unexpected results. 
+             We're continuously working to improve accuracy and quality. Results are not guaranteed 
+             and should be reviewed before use.
+           </p>
            <p className="text-xs text-neutral-700">&copy; 2025 Skin Retoucher AI. All rights reserved.</p>
         </div>
       </footer>
