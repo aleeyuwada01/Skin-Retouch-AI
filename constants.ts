@@ -73,11 +73,38 @@ STEP 9 - FINAL CHECK:
 `;
 
 export const STYLES: StyleConfig[] = [
+  // 1. Sculpted Glow (RECOMMENDED)
+  {
+    id: EnhanceStyle.Sculpted,
+    label: 'Sculpted Glow',
+    description: 'Cinematic glamour. Flawless skin with defined features.',
+    recommended: true,
+    prompt: `Professional skin retouch using Sculpted Glow/Glam style. ${BASE_RETOUCH} STYLE-SPECIFIC: Remove ALL skin imperfections, spots, blemishes, and marks completely for flawless skin. Apply aggressive smoothing for maximum skin uniformity. Use HEAVY Dodge & Burn to dramatically sculpt and define facial features - strong highlights on forehead, nose bridge, cupid's bow, and cheekbone tops; deep shadows under cheekbones, along jawline, sides of nose, and temples. Create chiseled, defined bone structure. The look should be smooth, flawless, and sculpted like high-end cinematic glamour photography. EYES - CRITICAL: For eye whitening, ONLY remove redness and yellow tints from the sclera (white part of eyes). DO NOT add any special effects, glow, sparkle, catchlights, or artifacts to the eyes. DO NOT change the iris color, pupil size, or eye shape. Keep the eyes looking completely natural - just cleaner and whiter sclera.`,
+    thumbnail: THUMB_SCULPTED
+  },
+  // 2. Dark Skin Glow
+  {
+    id: EnhanceStyle.DarkSkin,
+    label: 'Dark Skin Glow',
+    description: 'Optimized for melanin-rich skin. Even tone, radiant glow.',
+    prompt: `Professional skin retouch OPTIMIZED FOR DARK/MELANIN-RICH SKIN TONES. ${BASE_RETOUCH} STYLE-SPECIFIC FOR DARK SKIN: 
+- Preserve and enhance the natural richness and depth of dark skin tones - DO NOT lighten or wash out the skin
+- Remove hyperpigmentation, dark spots, and uneven patches while maintaining natural skin color
+- Even out skin tone without reducing melanin richness
+- Add a healthy, radiant glow that complements dark skin beautifully
+- Apply Dodge & Burn specifically calibrated for dark skin: subtle highlights on forehead, nose bridge, cheekbones, and chin; gentle shadows under cheekbones and jawline that enhance without creating ashy appearance
+- Remove any ashiness or grayish tones - skin should look vibrant and healthy
+- Enhance the natural luminosity of dark skin
+- Preserve the beautiful undertones (golden, red, blue) present in melanin-rich skin
+- Clean and brighten eyes while keeping them natural
+The result should celebrate and enhance dark skin's natural beauty with a flawless, glowing finish.`,
+    thumbnail: THUMB_DARKSKIN
+  },
+  // 3. Full Body Pro
   {
     id: EnhanceStyle.FullBody,
     label: 'Full Body Pro',
     description: 'Advanced multi-region retouch. Face, neck, hands, body.',
-    recommended: true,
     prompt: `You are a professional high-end beauty retoucher. PERFORM ADVANCED FULL BODY PROFESSIONAL SKIN RETOUCHING with multi-region intelligence.
 
 YOUR TASK: Retouch and enhance ALL visible skin in this image. Remove blemishes, even skin tone, smooth imperfections while preserving natural texture.
@@ -148,6 +175,7 @@ QUALITY CHECK: At 100% zoom, pores and natural lines must still be visible.
 The result should look like premium editorial full-body retouching - flawless yet completely natural.`,
     thumbnail: THUMB_FULLBODY
   },
+  // 4. Natural Pro
   {
     id: EnhanceStyle.Natural,
     label: 'Natural Pro',
@@ -155,6 +183,7 @@ The result should look like premium editorial full-body retouching - flawless ye
     prompt: `Professional skin retouch using Natural Pro-Retouch style. ${BASE_RETOUCH} STYLE-SPECIFIC: Focus on editorial realism. Use subtle frequency separation to even skin tone. Surgically remove all blemishes and acne while strictly preserving pores and natural skin texture. Apply subtle Dodge & Burn to enhance facial dimension and contours naturally. Brighten highlights on forehead, nose bridge, and cheekbones. Deepen shadows under cheekbones and jawline subtly. The skin must look realistic and flawless, not plastic or artificial.`,
     thumbnail: THUMB_NATURAL
   },
+  // 5. Soft Beauty
   {
     id: EnhanceStyle.Soft,
     label: 'Soft Beauty',
@@ -162,13 +191,7 @@ The result should look like premium editorial full-body retouching - flawless ye
     prompt: `Professional skin retouch using Soft Beauty style for fashion. ${BASE_RETOUCH} STYLE-SPECIFIC: Apply moderate smoothing for seamless color transitions. Remove all blemishes and imperfections completely. Add a subtle luminous glow effect. Apply moderate Dodge & Burn to sculpt facial features softly - brighten T-zone, under-eye area, and chin; add gentle shadows under cheekbones and along jawline. Reduce texture prominence slightly for a polished, magazine-quality finish. The result should look soft, flawless, and radiant.`,
     thumbnail: THUMB_SOFT
   },
-  {
-    id: EnhanceStyle.Sculpted,
-    label: 'Sculpted Glow',
-    description: 'Cinematic glamour. Flawless skin with defined features.',
-    prompt: `Professional skin retouch using Sculpted Glow/Glam style. ${BASE_RETOUCH} STYLE-SPECIFIC: Remove ALL skin imperfections, spots, blemishes, and marks completely for flawless skin. Apply aggressive smoothing for maximum skin uniformity. Use HEAVY Dodge & Burn to dramatically sculpt and define facial features - strong highlights on forehead, nose bridge, cupid's bow, and cheekbone tops; deep shadows under cheekbones, along jawline, sides of nose, and temples. Create chiseled, defined bone structure. The look should be smooth, flawless, and sculpted like high-end cinematic glamour photography. EYES - CRITICAL: For eye whitening, ONLY remove redness and yellow tints from the sclera (white part of eyes). DO NOT add any special effects, glow, sparkle, catchlights, or artifacts to the eyes. DO NOT change the iris color, pupil size, or eye shape. Keep the eyes looking completely natural - just cleaner and whiter sclera.`,
-    thumbnail: THUMB_SCULPTED
-  },
+  // 6. Skin-First Portrait
   {
     id: EnhanceStyle.Portrait,
     label: 'Skin-First Portrait',
@@ -176,31 +199,16 @@ The result should look like premium editorial full-body retouching - flawless ye
     prompt: `Professional skin retouch using Skin-First Portrait style. ${BASE_RETOUCH} STYLE-SPECIFIC: Use advanced frequency separation with intense focus on pore-level texture fidelity. Remove all blemishes, spots, acne, and imperfections while preserving micro-detail. Apply precise Dodge & Burn to enhance natural facial contours without losing texture detail - subtle highlights and shadows that follow the face's natural structure. Control micro-contrast to reduce harsh clarity while maintaining overall sharpness. The skin must appear extremely clean and flawless yet highly textured and realistic.`,
     thumbnail: THUMB_PORTRAIT
   },
+  // 7. Minimalist Clean-Up
   {
     id: EnhanceStyle.Minimalist,
     label: 'Minimalist Clean-Up',
     description: 'Corporate headshot. Clean, professional, natural look.',
     prompt: `Professional skin retouch using Minimalist Clean-Up style for corporate headshots. ${BASE_RETOUCH} STYLE-SPECIFIC: Remove ALL visible blemishes, pimples, acne, spots, dark circles, and skin imperfections. Smooth and even out skin tone across face, neck, and all visible skin. Remove stray hairs and distractions. Apply very subtle Dodge & Burn to gently enhance facial structure - minimal highlights on forehead and nose, soft shadows under chin. Keep natural texture. The result should have clean, flawless skin that looks professional and polished while maintaining a natural appearance suitable for business profiles.`,
     thumbnail: THUMB_MINIMAL
-  },
-  {
-    id: EnhanceStyle.DarkSkin,
-    label: 'Dark Skin Glow',
-    description: 'Optimized for melanin-rich skin. Even tone, radiant glow.',
-    prompt: `Professional skin retouch OPTIMIZED FOR DARK/MELANIN-RICH SKIN TONES. ${BASE_RETOUCH} STYLE-SPECIFIC FOR DARK SKIN: 
-- Preserve and enhance the natural richness and depth of dark skin tones - DO NOT lighten or wash out the skin
-- Remove hyperpigmentation, dark spots, and uneven patches while maintaining natural skin color
-- Even out skin tone without reducing melanin richness
-- Add a healthy, radiant glow that complements dark skin beautifully
-- Apply Dodge & Burn specifically calibrated for dark skin: subtle highlights on forehead, nose bridge, cheekbones, and chin; gentle shadows under cheekbones and jawline that enhance without creating ashy appearance
-- Remove any ashiness or grayish tones - skin should look vibrant and healthy
-- Enhance the natural luminosity of dark skin
-- Preserve the beautiful undertones (golden, red, blue) present in melanin-rich skin
-- Clean and brighten eyes while keeping them natural
-The result should celebrate and enhance dark skin's natural beauty with a flawless, glowing finish.`,
-    thumbnail: THUMB_DARKSKIN
   }
 ];
+
 
 export const SYSTEM_INSTRUCTION = `
 You are a professional high-end beauty retoucher trained to Retouch Academy standards.

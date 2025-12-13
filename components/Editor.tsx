@@ -58,7 +58,7 @@ const ToolButton: React.FC<ToolButtonProps> = ({ icon, className = '', ...props 
 export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProfile }) => {
   const [originalImage, setOriginalImage] = useState<string | null>(null);
   const [processedImage, setProcessedImage] = useState<string | null>(null);
-  const [selectedStyle, setSelectedStyle] = useState<EnhanceStyle>(EnhanceStyle.FullBody);
+  const [selectedStyle, setSelectedStyle] = useState<EnhanceStyle>(EnhanceStyle.Sculpted);
   const [customPrompt, setCustomPrompt] = useState<string>('');
   const [qualityWarning, setQualityWarning] = useState<string | null>(null);
   
