@@ -4,10 +4,9 @@ import { EnhanceStyle, StyleConfig } from './types';
 const THUMB_NATURAL = "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&q=80&w=100&h=100";
 const THUMB_SOFT = "https://images.unsplash.com/photo-1503104834685-7205e8607eb9?auto=format&fit=crop&q=80&w=100&h=100";
 const THUMB_SCULPTED = "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&q=80&w=100&h=100";
-const THUMB_PORTRAIT = "https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?auto=format&fit=crop&q=80&w=100&h=100";
-const THUMB_MINIMAL = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100";
 const THUMB_DARKSKIN = "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&q=80&w=100&h=100";
 const THUMB_FULLBODY = "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=100&h=100";
+const THUMB_DODGEBURN = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100&h=100";
 
 // Professional Retouch Academy Standards - Applied to ALL styles
 const BASE_RETOUCH = `
@@ -191,21 +190,83 @@ The result should look like premium editorial full-body retouching - flawless ye
     prompt: `Professional skin retouch using Soft Beauty style for fashion. ${BASE_RETOUCH} STYLE-SPECIFIC: Apply moderate smoothing for seamless color transitions. Remove all blemishes and imperfections completely. Add a subtle luminous glow effect. Apply moderate Dodge & Burn to sculpt facial features softly - brighten T-zone, under-eye area, and chin; add gentle shadows under cheekbones and along jawline. Reduce texture prominence slightly for a polished, magazine-quality finish. The result should look soft, flawless, and radiant.`,
     thumbnail: THUMB_SOFT
   },
-  // 6. Skin-First Portrait
+  // 6. Dodge & Burn
   {
-    id: EnhanceStyle.Portrait,
-    label: 'Skin-First Portrait',
-    description: 'Hyper-detailed art. Clean skin with pore-level fidelity.',
-    prompt: `Professional skin retouch using Skin-First Portrait style. ${BASE_RETOUCH} STYLE-SPECIFIC: Use advanced frequency separation with intense focus on pore-level texture fidelity. Remove all blemishes, spots, acne, and imperfections while preserving micro-detail. Apply precise Dodge & Burn to enhance natural facial contours without losing texture detail - subtle highlights and shadows that follow the face's natural structure. Control micro-contrast to reduce harsh clarity while maintaining overall sharpness. The skin must appear extremely clean and flawless yet highly textured and realistic.`,
-    thumbnail: THUMB_PORTRAIT
-  },
-  // 7. Minimalist Clean-Up
-  {
-    id: EnhanceStyle.Minimalist,
-    label: 'Minimalist Clean-Up',
-    description: 'Corporate headshot. Clean, professional, natural look.',
-    prompt: `Professional skin retouch using Minimalist Clean-Up style for corporate headshots. ${BASE_RETOUCH} STYLE-SPECIFIC: Remove ALL visible blemishes, pimples, acne, spots, dark circles, and skin imperfections. Smooth and even out skin tone across face, neck, and all visible skin. Remove stray hairs and distractions. Apply very subtle Dodge & Burn to gently enhance facial structure - minimal highlights on forehead and nose, soft shadows under chin. Keep natural texture. The result should have clean, flawless skin that looks professional and polished while maintaining a natural appearance suitable for business profiles.`,
-    thumbnail: THUMB_MINIMAL
+    id: EnhanceStyle.DodgeBurn,
+    label: 'Dodge & Burn',
+    description: 'Professional contouring. Sculpt and define with light and shadow.',
+    prompt: `You are a professional high-end beauty retoucher specializing in DODGE & BURN CONTOURING.
+
+YOUR TASK: Apply professional dodge and burn technique to sculpt, contour, and define facial features using light and shadow manipulation.
+
+CRITICAL - DO NOT CHANGE:
+- DO NOT crop, resize, or change the aspect ratio
+- Maintain EXACT original dimensions and composition
+- Return ONLY ONE IMAGE - the retouched version
+- NO side-by-side comparisons
+
+DODGE & BURN TECHNIQUE:
+This is a professional retouching technique that uses selective lightening (dodge) and darkening (burn) to:
+- Sculpt and define facial bone structure
+- Create depth and dimension
+- Even out skin tones and lighting
+- Enhance natural contours without changing features
+
+PHASE 1 - MICRO DODGE & BURN (Skin Evening):
+- Even out small patches of uneven skin tone
+- Remove dark spots, hyperpigmentation patches
+- Reduce under-eye darkness and shadows
+- Even out redness and discoloration
+- Smooth transitions between light and shadow areas
+- Strength: 0.25-0.35 for face, 0.20-0.30 for body
+
+PHASE 2 - MACRO DODGE & BURN (Contouring):
+DODGE (Lighten) these areas:
+- Center of forehead
+- Bridge of nose
+- Tip of nose
+- Under-eye area (to brighten)
+- Top of cheekbones
+- Cupid's bow (above upper lip)
+- Center of chin
+- Collar bones (if visible)
+
+BURN (Darken) these areas:
+- Temples (sides of forehead)
+- Sides of nose
+- Under cheekbones (hollow area)
+- Jawline definition
+- Under chin/neck shadow
+- Hairline edges
+
+PHASE 3 - SKIN TEXTURE PRESERVATION:
+- Preserve ALL natural skin texture, pores, and fine lines
+- NO smoothing or blurring
+- Texture preservation: ≥0.85 minimum
+- The dodge & burn should only affect luminosity, not texture
+
+PHASE 4 - BLEMISH REMOVAL:
+- Remove temporary blemishes: pimples, acne, dry patches
+- PRESERVE: moles, beauty marks, natural wrinkles, scars
+
+PHASE 5 - EYE ENHANCEMENT:
+- Brighten sclera (eye whites) - remove redness and yellow
+- Keep iris and pupils completely natural
+- Subtle brightening around eye area
+
+PHASE 6 - TEETH (ONLY if visible):
+- If teeth are showing: whiten and brighten
+- If teeth NOT visible: DO NOT modify mouth
+
+STRICT PROHIBITIONS:
+- DO NOT add teeth or open mouths
+- DO NOT change facial expressions
+- DO NOT alter facial structure or proportions
+- DO NOT apply plastic/waxy smoothing
+- DO NOT crop or resize
+
+The result should look like professional editorial retouching with beautifully sculpted features, enhanced dimension, and flawless yet natural-looking skin.`,
+    thumbnail: THUMB_DODGEBURN
   }
 ];
 

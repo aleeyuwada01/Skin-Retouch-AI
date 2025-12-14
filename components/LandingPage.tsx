@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Sparkles, Check, ArrowRight, Star, LogOut, User, LayoutDashboard, Shield } from 'lucide-react';
+import { Sparkles, Check, ArrowRight, Star, LogOut, User, LayoutDashboard, Shield, Loader2, X, Phone } from 'lucide-react';
 import { Button } from './Button';
 import { AuthModal } from './AuthModal';
 import { PolicyModal, PolicyType } from './PolicyModal';
 import { ComparisonSlider } from './ComparisonSlider';
 import { AuthState } from '../App';
+import { supabaseService } from '../services/supabaseService';
 
 interface LandingPageProps {
   onStart: () => void;
@@ -32,6 +33,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     type: null
   });
 
+  // Purchase Modal State
+  const [purchaseModal, setPurchaseModal] = useState(false);
+  const [purchaseForm, setPurchaseForm] = useState({ name: '', phone: '', plan: 'starter' });
+  const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
+  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+
   const user = authState.user;
   const profile = authState.profile;
 
@@ -54,6 +61,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   const openPolicy = (type: PolicyType) => {
     setPolicyModal({ isOpen: true, type });
+  };
+
+  const handlePurchaseSubmit = async () => {
+    if (!purchaseForm.name.trim() || !purchaseForm.phone.trim()) return;
+    
+    setIsSubmittingPurchase(true);
+    try {
+      await supabaseService.submitPurchaseRequest({
+        name: purchaseForm.name,
+        phone: purchaseForm.phone,
+        plan: purchaseForm.plan,
+        email: user?.email || undefined
+      });
+      setPurchaseSuccess(true);
+    } catch (error) {
+      console.error('Failed to submit purchase request:', error);
+    } finally {
+      setIsSubmittingPurchase(false);
+    }
+  };
+
+  const closePurchaseModal = () => {
+    setPurchaseModal(false);
+    setPurchaseSuccess(false);
+    setPurchaseForm({ name: '', phone: '', plan: 'starter' });
   };
 
   return (
@@ -172,37 +204,39 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
-            {/* Free */}
-            <div className="p-8 rounded-3xl border border-white/5 bg-[#111] hover:border-white/10 transition-colors">
-              <h3 className="text-xl font-bold mb-2">Starter</h3>
-              <div className="text-3xl font-bold mb-6">Free <span className="text-sm text-neutral-500 font-normal">/ forever</span></div>
+            {/* Starter */}
+            <div className="relative p-8 rounded-3xl border border-[#dfff00]/30 bg-[#161616] overflow-hidden group shadow-[0_0_40px_rgba(0,0,0,0.5)] transform hover:-translate-y-1 transition-transform duration-300">
+               <div className="absolute top-0 right-0 bg-[#dfff00] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-bl-xl">Popular</div>
+              <h3 className="text-xl font-bold mb-2 text-[#dfff00]">Starter</h3>
+              <div className="text-3xl font-bold mb-1">₦10,000</div>
+              <div className="text-sm text-neutral-400 mb-6">30 credits</div>
               <ul className="space-y-4 mb-8">
-                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> 5 Retouches / day</li>
-                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> Standard Quality</li>
+                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> 30 Retouches</li>
                  <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> All Pro Styles</li>
-                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> Web Resolution</li>
+                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> 4K Ultra-HD Download</li>
+                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> Background Change</li>
               </ul>
-              <Button onClick={handleStartAction} variant="secondary" className="w-full">Try Now</Button>
+              <Button onClick={() => setPurchaseModal(true)} className="w-full">Buy Now</Button>
             </div>
 
             {/* Pro - Coming Soon */}
-            <div className="relative p-8 rounded-3xl border border-[#dfff00]/30 bg-[#161616] overflow-hidden group shadow-[0_0_40px_rgba(0,0,0,0.5)] transform hover:-translate-y-1 transition-transform duration-300">
-               <div className="absolute top-0 right-0 bg-[#dfff00] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-bl-xl">Coming Soon</div>
-              <h3 className="text-xl font-bold mb-2 text-[#dfff00]">Pro</h3>
+            <div className="relative p-8 rounded-3xl border border-white/5 bg-[#111] hover:border-white/10 transition-colors">
+               <div className="absolute top-0 right-0 bg-neutral-800 text-neutral-400 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-bl-xl">Coming Soon</div>
+              <h3 className="text-xl font-bold mb-2">Pro</h3>
               <div className="text-3xl font-bold mb-6">Coming Soon</div>
               <ul className="space-y-4 mb-8">
-                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> Unlimited Retouches</li>
-                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> 4K Ultra-HD Download</li>
-                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> All 5 Pro Styles</li>
-                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> Priority Processing</li>
-                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> Batch Editing</li>
+                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-neutral-500" /> Unlimited Retouches</li>
+                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-neutral-500" /> 4K Ultra-HD Download</li>
+                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-neutral-500" /> All Pro Styles</li>
+                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-neutral-500" /> Priority Processing</li>
+                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-neutral-500" /> Batch Editing</li>
               </ul>
-              <button disabled className="w-full py-3.5 rounded-xl font-bold bg-[#dfff00] text-black opacity-50 cursor-not-allowed flex items-center justify-center gap-2">
+              <button onClick={() => setPurchaseModal(true)} className="w-full py-3.5 rounded-xl font-medium bg-white/5 text-neutral-400 border border-white/10 hover:bg-white/10 transition-colors">
                  Join Waitlist
               </button>
             </div>
 
-             {/* Studio - Coming Soon */}
+             {/* Studio - Enterprise */}
             <div className="relative p-8 rounded-3xl border border-white/5 bg-[#111] opacity-60 hover:opacity-100 transition-opacity duration-300">
                <div className="absolute top-0 right-0 bg-neutral-800 text-neutral-400 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-bl-xl">Enterprise</div>
               <h3 className="text-xl font-bold mb-2">Studio</h3>
@@ -254,6 +288,115 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         onClose={() => setPolicyModal({ ...policyModal, isOpen: false })}
         type={policyModal.type}
       />
+
+      {/* Purchase Modal */}
+      {purchaseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 relative">
+            <button 
+              onClick={closePurchaseModal}
+              className="absolute top-4 right-4 text-neutral-400 hover:text-white"
+            >
+              <X size={20} />
+            </button>
+
+            {purchaseSuccess ? (
+              <div className="text-center py-6">
+                <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Check size={32} className="text-green-400" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Request Submitted!</h3>
+                <p className="text-neutral-400 text-sm mb-6">
+                  We'll contact you shortly on the phone number provided to complete your purchase.
+                </p>
+                <Button onClick={closePurchaseModal} className="w-full">Done</Button>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-xl font-bold mb-2">Purchase Credits</h3>
+                <p className="text-neutral-400 text-sm mb-6">
+                  Fill in your details and we'll contact you to complete the purchase.
+                </p>
+
+                <div className="space-y-4">
+                  {/* Plan Selection */}
+                  <div>
+                    <label className="text-xs text-neutral-400 uppercase mb-2 block">Select Plan</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setPurchaseForm(prev => ({ ...prev, plan: 'starter' }))}
+                        className={`p-3 rounded-xl border text-left transition-colors ${
+                          purchaseForm.plan === 'starter' 
+                            ? 'border-[#dfff00] bg-[#dfff00]/10' 
+                            : 'border-white/10 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="font-bold text-sm">Starter</div>
+                        <div className="text-[#dfff00] font-bold">₦10,000</div>
+                        <div className="text-xs text-neutral-400">30 credits</div>
+                      </button>
+                      <button
+                        onClick={() => setPurchaseForm(prev => ({ ...prev, plan: 'pro' }))}
+                        className={`p-3 rounded-xl border text-left transition-colors ${
+                          purchaseForm.plan === 'pro' 
+                            ? 'border-[#dfff00] bg-[#dfff00]/10' 
+                            : 'border-white/10 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="font-bold text-sm">Pro Waitlist</div>
+                        <div className="text-neutral-400 font-bold text-sm">Coming Soon</div>
+                        <div className="text-xs text-neutral-400">Unlimited</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Name */}
+                  <div>
+                    <label className="text-xs text-neutral-400 uppercase mb-1 block">Full Name</label>
+                    <input
+                      type="text"
+                      value={purchaseForm.name}
+                      onChange={(e) => setPurchaseForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Enter your name"
+                      className="w-full bg-[#0a0a0a] border border-white/10 rounded-lg py-3 px-4 text-white placeholder-neutral-600 focus:outline-none focus:border-[#dfff00]"
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="text-xs text-neutral-400 uppercase mb-1 block">Phone Number</label>
+                    <div className="relative">
+                      <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500" />
+                      <input
+                        type="tel"
+                        value={purchaseForm.phone}
+                        onChange={(e) => setPurchaseForm(prev => ({ ...prev, phone: e.target.value }))}
+                        placeholder="e.g., 08012345678"
+                        className="w-full bg-[#0a0a0a] border border-white/10 rounded-lg py-3 pl-11 pr-4 text-white placeholder-neutral-600 focus:outline-none focus:border-[#dfff00]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handlePurchaseSubmit}
+                  disabled={isSubmittingPurchase || !purchaseForm.name.trim() || !purchaseForm.phone.trim()}
+                  className="w-full mt-6"
+                >
+                  {isSubmittingPurchase ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit Request'
+                  )}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

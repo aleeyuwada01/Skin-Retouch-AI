@@ -590,6 +590,47 @@ class SupabaseService {
       .eq('id', id);
     if (error) throw error;
   }
+
+  // Purchase Request methods
+  async submitPurchaseRequest(data: {
+    name: string;
+    phone: string;
+    plan: string;
+    email?: string;
+  }): Promise<void> {
+    const { error } = await this.supabase
+      .from('purchase_requests')
+      .insert({
+        name: data.name,
+        phone: data.phone,
+        plan: data.plan,
+        email: data.email || null,
+        status: 'pending'
+      });
+
+    if (error) throw error;
+  }
+
+  async getPurchaseRequests(): Promise<PurchaseRequest[]> {
+    const { data, error } = await this.supabase
+      .from('purchase_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  }
+
+  async updatePurchaseRequestStatus(id: string, status: string, adminNotes?: string): Promise<void> {
+    const { error } = await this.supabase
+      .from('purchase_requests')
+      .update({ 
+        status, 
+        admin_notes: adminNotes,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id);
+    if (error) throw error;
+  }
 }
 
 export interface CreditCode {
@@ -638,6 +679,18 @@ export interface ContactSubmission {
   phone: string | null;
   message: string;
   status: 'new' | 'read' | 'replied' | 'closed';
+  admin_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseRequest {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  plan: string;
+  status: 'pending' | 'contacted' | 'completed' | 'cancelled';
   admin_notes: string | null;
   created_at: string;
   updated_at: string;

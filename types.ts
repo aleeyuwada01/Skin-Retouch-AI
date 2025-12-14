@@ -2,10 +2,9 @@ export enum EnhanceStyle {
   Natural = 'Natural Pro',
   Soft = 'Soft Beauty',
   Sculpted = 'Sculpted Glow',
-  Portrait = 'Skin-First Portrait',
-  Minimalist = 'Minimalist Clean-Up',
   DarkSkin = 'Dark Skin Glow',
   FullBody = 'Full Body Pro',
+  DodgeBurn = 'Dodge & Burn',
   Custom = 'Custom Edit'
 }
 

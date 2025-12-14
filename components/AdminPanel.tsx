@@ -17,16 +17,18 @@ import {
   Settings,
   Gift,
   Mail,
-  MessageSquare
+  MessageSquare,
+  ShoppingCart,
+  Phone
 } from 'lucide-react';
-import { supabaseService, Profile, RetouchHistory, CreditCode, RetouchHistoryWithImages, AppSettings, Background, ContactSubmission } from '../services/supabaseService';
+import { supabaseService, Profile, RetouchHistory, CreditCode, RetouchHistoryWithImages, AppSettings, Background, ContactSubmission, PurchaseRequest } from '../services/supabaseService';
 
 interface AdminPanelProps {
   onBack: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState<'users' | 'codes' | 'images' | 'history' | 'settings' | 'backgrounds' | 'contacts'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'codes' | 'images' | 'history' | 'settings' | 'backgrounds' | 'contacts' | 'purchases'>('users');
   const [users, setUsers] = useState<Profile[]>([]);
   const [history, setHistory] = useState<(RetouchHistory & { profiles: { email: string } })[]>([]);
   const [retouchImages, setRetouchImages] = useState<(RetouchHistoryWithImages & { profiles: { email: string } })[]>([]);
@@ -34,6 +36,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const [stats, setStats] = useState({ totalUsers: 0, totalRetouches: 0, totalCreditsInSystem: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Purchase requests state
+  const [purchaseRequests, setPurchaseRequests] = useState<PurchaseRequest[]>([]);
   
   // App Settings state
   const [appSettings, setAppSettings] = useState<AppSettings>({
@@ -81,7 +86,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [usersData, historyData, statsData, codesData, imagesData, settingsData, backgroundsData, contactsData] = await Promise.all([
+      const [usersData, historyData, statsData, codesData, imagesData, settingsData, backgroundsData, contactsData, purchasesData] = await Promise.all([
         supabaseService.getAllUsers(),
         supabaseService.getAllRetouchHistory(),
         supabaseService.getStats(),
@@ -89,7 +94,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         supabaseService.getAllRetouchHistoryWithImages(),
         supabaseService.getAppSettings(),
         supabaseService.getBackgrounds(false), // Get all backgrounds including inactive
-        supabaseService.getContactSubmissions()
+        supabaseService.getContactSubmissions(),
+        supabaseService.getPurchaseRequests()
       ]);
       setUsers(usersData);
       setRetouchImages(imagesData);
@@ -99,6 +105,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       setAppSettings(settingsData);
       setBackgrounds(backgroundsData);
       setContactSubmissions(contactsData);
+      setPurchaseRequests(purchasesData);
     } catch (error) {
       console.error('Failed to load admin data:', error);
     } finally {
@@ -346,6 +353,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             {contactSubmissions.filter(c => c.status === 'new').length > 0 && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                 {contactSubmissions.filter(c => c.status === 'new').length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('purchases')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors relative ${
+              activeTab === 'purchases' ? 'bg-[#dfff00] text-black' : 'bg-[#1a1a1a] text-neutral-400 hover:text-white'
+            }`}
+          >
+            Purchases
+            {purchaseRequests.filter(p => p.status === 'pending').length > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                {purchaseRequests.filter(p => p.status === 'pending').length}
               </span>
             )}
           </button>
@@ -927,6 +947,84 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                   {contactSubmissions.length === 0 && (
                     <div className="p-8 text-center text-neutral-500">
                       No contact submissions yet
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'purchases' && (
+              <div className="bg-[#111] border border-white/5 rounded-xl overflow-hidden">
+                <div className="p-4 border-b border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart size={18} className="text-[#dfff00]" />
+                    <span className="font-medium">Purchase Requests</span>
+                    <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full text-neutral-400">
+                      {purchaseRequests.length} total
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="divide-y divide-white/5">
+                  {purchaseRequests.map((request) => (
+                    <div key={request.id} className={`p-4 ${request.status === 'pending' ? 'bg-yellow-900/10' : ''}`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                              request.plan === 'starter' ? 'bg-[#dfff00]/20 text-[#dfff00]' : 'bg-purple-500/20 text-purple-400'
+                            }`}>
+                              {request.plan === 'starter' ? '₦10,000 - 30 credits' : 'Pro Waitlist'}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              request.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                              request.status === 'contacted' ? 'bg-blue-500/20 text-blue-400' :
+                              request.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                              'bg-red-500/20 text-red-400'
+                            }`}>
+                              {request.status}
+                            </span>
+                          </div>
+                          <p className="font-medium text-white">{request.name}</p>
+                          <div className="flex items-center gap-2 text-sm text-neutral-400 mt-1">
+                            <Phone size={14} />
+                            <a href={`tel:${request.phone}`} className="hover:text-[#dfff00]">{request.phone}</a>
+                          </div>
+                          {request.email && <p className="text-sm text-neutral-500">{request.email}</p>}
+                          {request.admin_notes && (
+                            <p className="text-xs text-neutral-500 mt-2 italic">Note: {request.admin_notes}</p>
+                          )}
+                          <p className="text-xs text-neutral-600 mt-2">
+                            {new Date(request.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <select
+                            value={request.status}
+                            onChange={async (e) => {
+                              await supabaseService.updatePurchaseRequestStatus(request.id, e.target.value);
+                              await loadData();
+                            }}
+                            className="bg-[#1a1a1a] border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                          <a
+                            href={`tel:${request.phone}`}
+                            className="text-xs bg-[#dfff00] text-black px-3 py-1.5 rounded-lg font-medium text-center hover:bg-[#ccff00]"
+                          >
+                            Call
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {purchaseRequests.length === 0 && (
+                    <div className="p-8 text-center text-neutral-500">
+                      No purchase requests yet
                     </div>
                   )}
                 </div>
