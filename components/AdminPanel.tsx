@@ -48,7 +48,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     retouch_cost_4k: 2,
     retouch_cost_2k: 1,
     retouch_cost_1k: 1,
-    background_cost: 1
+    background_cost: 1,
+    starter_price_usd: 7,
+    starter_credits: 30,
+    usd_to_ngn_rate: 1480
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   
@@ -123,7 +126,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         supabaseService.updateAppSetting('retouch_cost_4k', appSettings.retouch_cost_4k),
         supabaseService.updateAppSetting('retouch_cost_2k', appSettings.retouch_cost_2k),
         supabaseService.updateAppSetting('retouch_cost_1k', appSettings.retouch_cost_1k),
-        supabaseService.updateAppSetting('background_cost', appSettings.background_cost)
+        supabaseService.updateAppSetting('background_cost', appSettings.background_cost),
+        supabaseService.updateAppSetting('starter_price_usd', appSettings.starter_price_usd),
+        supabaseService.updateAppSetting('starter_credits', appSettings.starter_credits),
+        supabaseService.updateAppSetting('usd_to_ngn_rate', appSettings.usd_to_ngn_rate)
       ]);
     } catch (error) {
       console.error('Failed to save settings:', error);
@@ -771,6 +777,68 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                           className="w-full bg-[#111] border border-white/10 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-[#dfff00]"
                         />
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Pricing Section */}
+                  <div className="border-t border-white/10 pt-6 mt-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <CreditCard size={24} className="text-green-400" />
+                      <div>
+                        <h3 className="text-lg font-bold">Pricing Settings</h3>
+                        <p className="text-sm text-neutral-400">Set starter pack pricing and exchange rate</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Starter Price USD */}
+                      <div className="p-4 bg-[#0a0a0a] rounded-xl">
+                        <label className="block font-medium mb-2">Starter Price (USD)</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">$</span>
+                          <input
+                            type="number"
+                            value={appSettings.starter_price_usd}
+                            onChange={(e) => setAppSettings(prev => ({ ...prev, starter_price_usd: parseInt(e.target.value) || 1 }))}
+                            min={1}
+                            className="w-full bg-[#111] border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white focus:outline-none focus:border-[#dfff00]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Starter Credits */}
+                      <div className="p-4 bg-[#0a0a0a] rounded-xl">
+                        <label className="block font-medium mb-2">Starter Credits</label>
+                        <input
+                          type="number"
+                          value={appSettings.starter_credits}
+                          onChange={(e) => setAppSettings(prev => ({ ...prev, starter_credits: parseInt(e.target.value) || 1 }))}
+                          min={1}
+                          className="w-full bg-[#111] border border-white/10 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-[#dfff00]"
+                        />
+                      </div>
+
+                      {/* USD to NGN Rate */}
+                      <div className="p-4 bg-[#0a0a0a] rounded-xl">
+                        <label className="block font-medium mb-2">USD to NGN Rate</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">₦</span>
+                          <input
+                            type="number"
+                            value={appSettings.usd_to_ngn_rate}
+                            onChange={(e) => setAppSettings(prev => ({ ...prev, usd_to_ngn_rate: parseInt(e.target.value) || 1 }))}
+                            min={1}
+                            className="w-full bg-[#111] border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white focus:outline-none focus:border-[#dfff00]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preview */}
+                    <div className="mt-4 p-4 bg-[#dfff00]/10 border border-[#dfff00]/20 rounded-xl">
+                      <p className="text-sm text-[#dfff00]">
+                        Preview: ${appSettings.starter_price_usd} = ₦{(appSettings.starter_price_usd * appSettings.usd_to_ngn_rate).toLocaleString()} for {appSettings.starter_credits} credits
+                      </p>
                     </div>
                   </div>
 

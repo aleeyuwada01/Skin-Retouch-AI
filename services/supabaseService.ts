@@ -361,7 +361,10 @@ class SupabaseService {
       retouch_cost_4k: 2,
       retouch_cost_2k: 1,
       retouch_cost_1k: 1,
-      background_cost: 1
+      background_cost: 1,
+      starter_price_usd: 7,
+      starter_credits: 30,
+      usd_to_ngn_rate: 1480
     };
     
     data?.forEach(row => {
@@ -379,6 +382,12 @@ class SupabaseService {
         settings.retouch_cost_1k = typeof row.value === 'number' ? row.value : parseInt(row.value, 10);
       } else if (row.key === 'background_cost') {
         settings.background_cost = typeof row.value === 'number' ? row.value : parseInt(row.value, 10);
+      } else if (row.key === 'starter_price_usd') {
+        settings.starter_price_usd = typeof row.value === 'number' ? row.value : parseInt(row.value, 10);
+      } else if (row.key === 'starter_credits') {
+        settings.starter_credits = typeof row.value === 'number' ? row.value : parseInt(row.value, 10);
+      } else if (row.key === 'usd_to_ngn_rate') {
+        settings.usd_to_ngn_rate = typeof row.value === 'number' ? row.value : parseInt(row.value, 10);
       }
     });
     
@@ -658,6 +667,9 @@ export interface AppSettings {
   retouch_cost_2k: number;
   retouch_cost_1k: number;
   background_cost: number;
+  starter_price_usd: number;
+  starter_credits: number;
+  usd_to_ngn_rate: number;
 }
 
 export interface Background {

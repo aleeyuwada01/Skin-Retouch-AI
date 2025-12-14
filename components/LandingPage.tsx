@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { Sparkles, Check, ArrowRight, Star, LogOut, User, LayoutDashboard, Shield, Loader2, X, Phone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Check, ArrowRight, Star, LogOut, User, LayoutDashboard, Shield, Loader2, X, Phone, DollarSign } from 'lucide-react';
 import { Button } from './Button';
 import { AuthModal } from './AuthModal';
 import { PolicyModal, PolicyType } from './PolicyModal';
 import { ComparisonSlider } from './ComparisonSlider';
 import { AuthState } from '../App';
-import { supabaseService } from '../services/supabaseService';
+import { supabaseService, AppSettings } from '../services/supabaseService';
 
 interface LandingPageProps {
   onStart: () => void;
@@ -39,8 +39,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const [isSubmittingPurchase, setIsSubmittingPurchase] = useState(false);
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
 
+  // Pricing State
+  const [showNaira, setShowNaira] = useState(false);
+  const [pricing, setPricing] = useState({ priceUsd: 7, credits: 30, rate: 1480 });
+
   const user = authState.user;
   const profile = authState.profile;
+
+  // Fetch pricing settings
+  useEffect(() => {
+    const loadPricing = async () => {
+      try {
+        const settings = await supabaseService.getAppSettings();
+        setPricing({
+          priceUsd: settings.starter_price_usd,
+          credits: settings.starter_credits,
+          rate: settings.usd_to_ngn_rate
+        });
+      } catch (error) {
+        console.error('Failed to load pricing:', error);
+      }
+    };
+    loadPricing();
+  }, []);
+
+  const priceNaira = pricing.priceUsd * pricing.rate;
+  const formattedPriceUsd = `$${pricing.priceUsd}`;
+  const formattedPriceNaira = `₦${priceNaira.toLocaleString()}`;
 
   const handleLoginSuccess = (user: any) => {
     onLoginSuccess(user);
@@ -200,7 +225,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">Simple Pricing</h2>
-            <p className="text-neutral-400">Professional tools for everyone. Choose the plan that fits your workflow.</p>
+            <p className="text-neutral-400 mb-6">Professional tools for everyone. Choose the plan that fits your workflow.</p>
+            
+            {/* Currency Toggle */}
+            <div className="inline-flex items-center gap-2 bg-[#1a1a1a] rounded-full p-1">
+              <button
+                onClick={() => setShowNaira(false)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                  !showNaira ? 'bg-[#dfff00] text-black' : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                <DollarSign size={14} />
+                USD
+              </button>
+              <button
+                onClick={() => setShowNaira(true)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  showNaira ? 'bg-[#dfff00] text-black' : 'text-neutral-400 hover:text-white'
+                }`}
+              >
+                ₦ NGN
+              </button>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
@@ -208,10 +254,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="relative p-8 rounded-3xl border border-[#dfff00]/30 bg-[#161616] overflow-hidden group shadow-[0_0_40px_rgba(0,0,0,0.5)] transform hover:-translate-y-1 transition-transform duration-300">
                <div className="absolute top-0 right-0 bg-[#dfff00] text-black text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-bl-xl">Popular</div>
               <h3 className="text-xl font-bold mb-2 text-[#dfff00]">Starter</h3>
-              <div className="text-3xl font-bold mb-1">₦10,000</div>
-              <div className="text-sm text-neutral-400 mb-6">30 credits</div>
+              <div className="text-3xl font-bold mb-1">{showNaira ? formattedPriceNaira : formattedPriceUsd}</div>
+              <div className="text-sm text-neutral-400 mb-6">{pricing.credits} credits</div>
               <ul className="space-y-4 mb-8">
-                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> 30 Retouches</li>
+                 <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> {pricing.credits} Retouches</li>
                  <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> All Pro Styles</li>
                  <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> 4K Ultra-HD Download</li>
                  <li className="flex gap-3 text-sm text-neutral-300"><Check size={16} className="text-[#dfff00]" /> Background Change</li>
@@ -332,8 +378,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                         }`}
                       >
                         <div className="font-bold text-sm">Starter</div>
-                        <div className="text-[#dfff00] font-bold">₦10,000</div>
-                        <div className="text-xs text-neutral-400">30 credits</div>
+                        <div className="text-[#dfff00] font-bold">{showNaira ? formattedPriceNaira : formattedPriceUsd}</div>
+                        <div className="text-xs text-neutral-400">{pricing.credits} credits</div>
                       </button>
                       <button
                         onClick={() => setPurchaseForm(prev => ({ ...prev, plan: 'pro' }))}
