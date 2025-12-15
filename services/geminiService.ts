@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { EnhanceStyle } from "../types";
-import { STYLES, SYSTEM_INSTRUCTION } from "../constants";
+import { STYLES, SYSTEM_INSTRUCTION, SOURCE_ADHERENCE_GUARDRAIL } from "../constants";
 
 export class GeminiService {
   private ai: GoogleGenAI;
@@ -17,7 +17,7 @@ export class GeminiService {
     imageBase64: string,
     resolution: '1K' | '2K' | '4K' = '4K'
   ): Promise<string> {
-    const reEnhancePrompt = `INTENSIVE RE-ENHANCEMENT: This image needs additional retouching. Apply the following aggressively:
+    const reEnhancePrompt = SOURCE_ADHERENCE_GUARDRAIL + `\n\nINTENSIVE RE-ENHANCEMENT: This image needs additional retouching. Apply the following aggressively:
 - Remove ALL remaining spots, blemishes, marks, and imperfections - leave NO visible flaws
 - Smooth skin further for an ultra-flawless, poreless finish
 - Apply stronger Dodge & Burn: brighten highlights on forehead, nose, cheekbones, chin; deepen shadows under cheekbones, jawline, and sides of nose for more sculpted look
@@ -52,11 +52,14 @@ Keep the same aspect ratio and dimensions.`;
       
       let promptText = "";
 
+      // ALWAYS start with source adherence guardrail
+      promptText = SOURCE_ADHERENCE_GUARDRAIL + "\n\n";
+
       if (style === EnhanceStyle.Custom && customPrompt) {
-        promptText = `Retouch this image based on the following instruction: ${customPrompt}. Ensure you maintain high-quality skin texture and do not alter the background identity. Output the image at the highest possible resolution (4K/Ultra HD quality).`;
+        promptText += `Retouch this image based on the following instruction: ${customPrompt}. Ensure you maintain high-quality skin texture and do not alter the background identity. Output the image at the highest possible resolution (4K/Ultra HD quality).`;
       } else {
         const selectedStyle = STYLES.find(s => s.id === style);
-        promptText = selectedStyle ? selectedStyle.prompt : STYLES[0].prompt;
+        promptText += selectedStyle ? selectedStyle.prompt : STYLES[0].prompt;
         
         if (customPrompt) {
           promptText += ` \nAdditional Instruction: ${customPrompt}`;
