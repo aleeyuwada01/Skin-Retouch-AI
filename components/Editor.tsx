@@ -1000,8 +1000,8 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
                    <ToolButton icon={<Trash2 size={16} />} onClick={clearCanvas} title="Clear" />
                  </div>
                  
-                 {/* Re-enhance / Smooth More Button */}
-                 {processedImage && processingState.status === 'complete' && remainingCredits > 0 && (
+                 {/* Re-enhance / Smooth More Button - TEMPORARILY HIDDEN */}
+                 {/* {processedImage && processingState.status === 'complete' && remainingCredits > 0 && (
                    <button
                      onClick={handleReEnhance}
                      className="bg-[#1a1a1a] px-3 py-1.5 rounded-xl border border-white/5 shadow-xl flex items-center gap-2 hover:bg-[#252525] transition-colors group"
@@ -1011,7 +1011,7 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
                      <RefreshCw size={14} className="text-[#dfff00] group-hover:rotate-180 transition-transform duration-300" />
                      <span className="text-xs font-medium text-neutral-300">Smooth More</span>
                    </button>
-                 )}
+                 )} */}
                  
                  {/* Change Background Button */}
                  {processedImage && processingState.status === 'complete' && remainingCredits >= creditCosts.background_cost && (

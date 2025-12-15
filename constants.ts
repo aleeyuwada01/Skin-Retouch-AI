@@ -251,17 +251,20 @@ The result should celebrate and enhance dark skin's natural beauty with a flawle
 - Deepen shadows significantly under the cheekbones, along the jawline, and at the sides of the nose and temples.
 - Create a deeply chiseled and defined facial structure for a high-fashion, commercial look.
 
-**4. Eye Enhancement:**
-- **CRITICAL Eye Whitening:** Make the sclera (eye whites) **PURE, INTENSE WHITE**—remove ALL redness, yellow, and any visible blood vessels.
-- Brighten the eye area intensely to make the eyes stand out dramatically, matching the high contrast and definition of the makeup.
-- DO NOT add special effects (e.g., sparkle or catchlights). Keep the iris and pupil natural.
+**4. Eye Enhancement (WHITENING ONLY):**
+- ONLY whiten the sclera (eye whites) by removing redness, yellow tints, and visible blood vessels.
+- DO NOT brighten, enhance, or modify the eye area in any other way.
+- DO NOT add any effects: no glow, sparkle, catchlights, reflections, or artifacts.
+- DO NOT change iris color, pupil size, eye shape, or eyelashes.
+- PRESERVE the eyes exactly as they are - only make the sclera cleaner and whiter.
+- The eyes must look completely natural, just with whiter sclera.
 
 **5. Texture Preservation:**
 - Due to the aggressive smoothing required for this aesthetic, the texture preservation strength should be lowered *slightly* compared to Natural Pro, but still avoid a completely plastic look.
 - Set texture preservation strength to Face ≥0.65 to maintain minimal pores/detail while achieving maximum smoothness.
 
 **6. Final Check:** The result must be hyper-retouched, high-contrast, luminous, and dramatically contoured, strictly adhering to the original subject's features and non-skin elements.`,
-    thumbnail: THUMB_DARKSKIN
+    thumbnail: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100"
   },
   // 4. Natural Pro
   {
