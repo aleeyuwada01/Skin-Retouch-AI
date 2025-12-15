@@ -129,8 +129,6 @@ const THUMB_NATURAL = "https://images.unsplash.com/photo-1531746020798-e6953c6e8
 const THUMB_SOFT = "https://images.unsplash.com/photo-1503104834685-7205e8607eb9?auto=format&fit=crop&q=80&w=100&h=100";
 const THUMB_SCULPTED = "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&q=80&w=100&h=100";
 const THUMB_DARKSKIN = "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&q=80&w=100&h=100";
-const THUMB_FULLBODY = "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=100&h=100";
-const THUMB_DODGEBURN = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100&h=100";
 
 // Professional Retouch Academy Standards - Applied to ALL styles
 const BASE_RETOUCH = `
@@ -269,46 +267,73 @@ The result should celebrate and enhance dark skin's natural beauty with a flawle
     label: 'Ultra Glam',
     description: 'Maximum intensity. Extreme luminance, ultra-deep contouring, glass-like skin perfection.',
     recommended: false,
-    prompt: `You are an ELITE high-end beauty retoucher creating ULTRA GLAM - the most intense, dramatic retouching style for luxury editorial and high-fashion campaigns. ${BASE_RETOUCH} STYLE-SPECIFIC FOR ULTRA GLAM:
+    prompt: `You are an ELITE high-end beauty retoucher creating ULTRA GLAM - the most EXTREME, DRAMATIC retouching style for luxury editorial and high-fashion campaigns.
 
-**1. EXTREME Skin Perfection:**
-- Achieve ABSOLUTE glass-like, porcelain-perfect skin finish - zero imperfections visible.
-- Apply MAXIMUM smoothing for complete skin uniformity - seamless like airbrushed perfection.
-- Remove EVERY skin imperfection, spot, blemish, pore visibility, and texture issue completely.
-- **CRITICAL:** Preserve the natural richness of skin tone – DO NOT lighten or wash out.
-- Skin must appear impossibly smooth, luminous, and flawless.
+=== CRITICAL OUTPUT RULES ===
+- Return ONLY ONE IMAGE - the retouched version only
+- NO side-by-side comparisons or before/after
+- Maintain EXACT original dimensions and aspect ratio
+- DO NOT crop, resize, or change composition
+- DO NOT alter facial structure, body shape, or proportions
+- DO NOT add teeth or modify mouth/expressions
 
-**2. EXTREME Luminosity and Glow:**
-- Create an **ULTRA high-intensity luminous glow** - skin should appear to glow from within.
-- Apply INTENSE, precise Dodge to create dramatic, wet-glass highlights:
-  - Center of forehead (strong focus)
-  - Center of the nose bridge (MAXIMUM intensity)
-  - Tops of the cheekbones (EXTREME intensity - almost reflective)
-  - Cupid's bow, center of chin, and collar bones.
-- Highlights must look sharp, intense, and highly reflective - like liquid gold on skin.
+=== ULTRA GLAM STYLE - MAXIMUM INTENSITY ===
 
-**3. EXTREME Contouring (Maximum Burn):**
-- Use **MAXIMUM Burn** to dramatically sculpt and define bone structure to the extreme.
-- Create DEEP, dramatic shadows under cheekbones, along jawline, sides of nose, temples, and under chin.
-- The facial structure should look extremely chiseled, defined, and sculpted - high-fashion editorial intensity.
+**STEP 1 - EXTREME SKIN PERFECTION (PRIORITY #1):**
+This is the MOST IMPORTANT step. Apply AGGRESSIVE, HEAVY smoothing:
+- Remove 100% of ALL visible pores - skin must look like smooth porcelain/glass
+- Remove ALL spots, blemishes, marks, acne, texture, bumps - ZERO imperfections
+- Apply HEAVY frequency separation smoothing - blur the skin significantly
+- Create completely UNIFORM, FLAWLESS skin tone across entire face and body
+- The skin should look AIRBRUSHED and IMPOSSIBLY SMOOTH - like a wax figure or CGI
+- Smoothing strength: MAXIMUM (0.90+) - prioritize smoothness over texture
+- This is NOT natural retouching - this is EXTREME glamour retouching
+- CRITICAL: Preserve natural skin COLOR/tone - do NOT lighten or wash out dark skin
 
-**4. EXTREME Eye Enhancement:**
-- **CRITICAL:** Make sclera **PURE BRILLIANT WHITE** - remove ALL redness, yellow, blood vessels completely.
-- Eyes should look dramatically bright and striking - the focal point of the face.
-- Brighten the entire eye area intensely for maximum impact.
-- DO NOT add special effects. Keep iris and pupil natural but make them pop.
+**STEP 2 - EXTREME LUMINOSITY & HIGHLIGHTS:**
+Apply INTENSE dodge (lightening) to create dramatic WET-LOOK highlights:
+- Center of forehead: STRONG bright highlight
+- Nose bridge: MAXIMUM intensity highlight - almost white/reflective
+- Cheekbone tops: EXTREME bright highlights - like light reflecting off glass
+- Cupid's bow: Sharp bright highlight
+- Chin center: Strong highlight
+- Collar bones (if visible): Dramatic highlights
+The highlights should look SHARP, INTENSE, and HIGHLY REFLECTIVE - like liquid gold on skin
 
-**5. EXTREME Teeth Whitening (if visible):**
-- If teeth are showing: make them BRILLIANT WHITE - perfect Hollywood smile.
-- Remove all yellow, stains, and imperfections completely.
+**STEP 3 - EXTREME CONTOURING (HEAVY BURN):**
+Apply MAXIMUM burn (darkening) for dramatic sculpting:
+- Under cheekbones: DEEP, dramatic shadows - create hollow, chiseled look
+- Jawline: Strong shadow definition - sharp, defined jaw
+- Sides of nose: Deep shadows for narrow, sculpted nose
+- Temples: Darkened for face shape definition
+- Under chin/neck: Strong shadow for definition
+- Hairline edges: Subtle darkening
+The face should look EXTREMELY SCULPTED and CHISELED - high-fashion editorial intensity
 
-**6. Texture - Glass Skin Effect:**
-- Texture preservation: Face ≥0.50 - prioritize smoothness over texture.
-- Achieve the "glass skin" K-beauty effect - smooth, luminous, reflective.
-- Minimal pore visibility - skin should look like polished porcelain.
+**STEP 4 - EXTREME EYE ENHANCEMENT:**
+- Make sclera (eye whites) PURE BRILLIANT WHITE - remove 100% of redness, yellow, blood vessels
+- Eyes should be the BRIGHTEST, most STRIKING feature of the face
+- Brighten entire eye area intensely - remove all darkness/shadows around eyes
+- Make eyes POP dramatically
+- Keep iris and pupil natural - NO special effects, sparkles, or catchlights
 
-**7. Final Check:** The result must be HYPER-retouched, MAXIMUM contrast, EXTREME luminosity, and ULTRA-sculpted. This is the most dramatic, intense retouching style - suitable for high-fashion campaigns and luxury beauty editorials.`,
-    thumbnail: "https://images.unsplash.com/photo-1596075780750-81249df16d19?auto=format&fit=crop&q=80&w=100&h=100"
+**STEP 5 - EXTREME TEETH WHITENING (only if teeth visible):**
+- If teeth are showing: make them BRILLIANT WHITE - perfect Hollywood smile
+- Remove ALL yellow, stains, discoloration completely
+- If teeth NOT visible: DO NOT modify mouth at all
+
+**STEP 6 - FINAL INTENSITY CHECK:**
+Before outputting, verify:
+- Skin is IMPOSSIBLY SMOOTH - no visible pores or texture (like airbrushed/CGI)
+- Highlights are INTENSE and REFLECTIVE
+- Contours are DEEP and DRAMATIC
+- Eyes are BRILLIANT WHITE and striking
+- Overall look is HYPER-RETOUCHED, HIGH-CONTRAST, ULTRA-GLAMOROUS
+- This should look like a high-end beauty campaign or luxury magazine cover
+- The retouching should be OBVIOUS and DRAMATIC - not subtle or natural
+
+REMEMBER: This is ULTRA GLAM - the most extreme style. Do NOT hold back on smoothing and effects. The result should look like professional high-fashion retouching with maximum intensity.`,
+    thumbnail: "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?auto=format&fit=crop&q=80&w=100&h=100"
   },
   // 5. Natural Pro
   {
@@ -326,84 +351,6 @@ The result should celebrate and enhance dark skin's natural beauty with a flawle
     prompt: `Professional skin retouch using Soft Beauty style for fashion. ${BASE_RETOUCH} STYLE-SPECIFIC: Apply moderate smoothing for seamless color transitions. Remove all blemishes and imperfections completely. Add a subtle luminous glow effect. Apply moderate Dodge & Burn to sculpt facial features softly - brighten T-zone, under-eye area, and chin; add gentle shadows under cheekbones and along jawline. Reduce texture prominence slightly for a polished, magazine-quality finish. The result should look soft, flawless, and radiant.`,
     thumbnail: THUMB_SOFT
   },
-  // 6. Dodge & Burn
-  {
-    id: EnhanceStyle.DodgeBurn,
-    label: 'Dodge & Burn',
-    description: 'Professional contouring. Sculpt and define with light and shadow.',
-    prompt: `You are a professional high-end beauty retoucher specializing in DODGE & BURN CONTOURING.
-
-YOUR TASK: Apply professional dodge and burn technique to sculpt, contour, and define facial features using light and shadow manipulation.
-
-CRITICAL - DO NOT CHANGE:
-- DO NOT crop, resize, or change the aspect ratio
-- Maintain EXACT original dimensions and composition
-- Return ONLY ONE IMAGE - the retouched version
-- NO side-by-side comparisons
-
-DODGE & BURN TECHNIQUE:
-This is a professional retouching technique that uses selective lightening (dodge) and darkening (burn) to:
-- Sculpt and define facial bone structure
-- Create depth and dimension
-- Even out skin tones and lighting
-- Enhance natural contours without changing features
-
-PHASE 1 - MICRO DODGE & BURN (Skin Evening):
-- Even out small patches of uneven skin tone
-- Remove dark spots, hyperpigmentation patches
-- Reduce under-eye darkness and shadows
-- Even out redness and discoloration
-- Smooth transitions between light and shadow areas
-- Strength: 0.25-0.35 for face, 0.20-0.30 for body
-
-PHASE 2 - MACRO DODGE & BURN (Contouring):
-DODGE (Lighten) these areas:
-- Center of forehead
-- Bridge of nose
-- Tip of nose
-- Under-eye area (to brighten)
-- Top of cheekbones
-- Cupid's bow (above upper lip)
-- Center of chin
-- Collar bones (if visible)
-
-BURN (Darken) these areas:
-- Temples (sides of forehead)
-- Sides of nose
-- Under cheekbones (hollow area)
-- Jawline definition
-- Under chin/neck shadow
-- Hairline edges
-
-PHASE 3 - SKIN TEXTURE PRESERVATION:
-- Preserve ALL natural skin texture, pores, and fine lines
-- NO smoothing or blurring
-- Texture preservation: ≥0.85 minimum
-- The dodge & burn should only affect luminosity, not texture
-
-PHASE 4 - BLEMISH REMOVAL:
-- Remove temporary blemishes: pimples, acne, dry patches
-- PRESERVE: moles, beauty marks, natural wrinkles, scars
-
-PHASE 5 - EYE ENHANCEMENT:
-- Brighten sclera (eye whites) - remove redness and yellow
-- Keep iris and pupils completely natural
-- Subtle brightening around eye area
-
-PHASE 6 - TEETH (ONLY if visible):
-- If teeth are showing: whiten and brighten
-- If teeth NOT visible: DO NOT modify mouth
-
-STRICT PROHIBITIONS:
-- DO NOT add teeth or open mouths
-- DO NOT change facial expressions
-- DO NOT alter facial structure or proportions
-- DO NOT apply plastic/waxy smoothing
-- DO NOT crop or resize
-
-The result should look like professional editorial retouching with beautifully sculpted features, enhanced dimension, and flawless yet natural-looking skin.`,
-    thumbnail: THUMB_DODGEBURN
-  }
 ];
 
 

@@ -5,7 +5,6 @@ export enum EnhanceStyle {
   DarkSkin = 'Dark Skin Glow',
   Gilded = 'Gilded Editorial',
   UltraGlam = 'Ultra Glam',
-  DodgeBurn = 'Dodge & Burn',
   Custom = 'Custom Edit'
 }
 
