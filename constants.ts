@@ -263,7 +263,54 @@ The result should celebrate and enhance dark skin's natural beauty with a flawle
 **6. Final Check:** The result must be hyper-retouched, high-contrast, luminous, and dramatically contoured, strictly adhering to the original subject's features and non-skin elements.`,
     thumbnail: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100"
   },
-  // 4. Natural Pro
+  // 4. Ultra Glam (Exaggerated Gilded Editorial)
+  {
+    id: EnhanceStyle.UltraGlam,
+    label: 'Ultra Glam',
+    description: 'Maximum intensity. Extreme luminance, ultra-deep contouring, glass-like skin perfection.',
+    recommended: false,
+    prompt: `You are an ELITE high-end beauty retoucher creating ULTRA GLAM - the most intense, dramatic retouching style for luxury editorial and high-fashion campaigns. ${BASE_RETOUCH} STYLE-SPECIFIC FOR ULTRA GLAM:
+
+**1. EXTREME Skin Perfection:**
+- Achieve ABSOLUTE glass-like, porcelain-perfect skin finish - zero imperfections visible.
+- Apply MAXIMUM smoothing for complete skin uniformity - seamless like airbrushed perfection.
+- Remove EVERY skin imperfection, spot, blemish, pore visibility, and texture issue completely.
+- **CRITICAL:** Preserve the natural richness of skin tone – DO NOT lighten or wash out.
+- Skin must appear impossibly smooth, luminous, and flawless.
+
+**2. EXTREME Luminosity and Glow:**
+- Create an **ULTRA high-intensity luminous glow** - skin should appear to glow from within.
+- Apply INTENSE, precise Dodge to create dramatic, wet-glass highlights:
+  - Center of forehead (strong focus)
+  - Center of the nose bridge (MAXIMUM intensity)
+  - Tops of the cheekbones (EXTREME intensity - almost reflective)
+  - Cupid's bow, center of chin, and collar bones.
+- Highlights must look sharp, intense, and highly reflective - like liquid gold on skin.
+
+**3. EXTREME Contouring (Maximum Burn):**
+- Use **MAXIMUM Burn** to dramatically sculpt and define bone structure to the extreme.
+- Create DEEP, dramatic shadows under cheekbones, along jawline, sides of nose, temples, and under chin.
+- The facial structure should look extremely chiseled, defined, and sculpted - high-fashion editorial intensity.
+
+**4. EXTREME Eye Enhancement:**
+- **CRITICAL:** Make sclera **PURE BRILLIANT WHITE** - remove ALL redness, yellow, blood vessels completely.
+- Eyes should look dramatically bright and striking - the focal point of the face.
+- Brighten the entire eye area intensely for maximum impact.
+- DO NOT add special effects. Keep iris and pupil natural but make them pop.
+
+**5. EXTREME Teeth Whitening (if visible):**
+- If teeth are showing: make them BRILLIANT WHITE - perfect Hollywood smile.
+- Remove all yellow, stains, and imperfections completely.
+
+**6. Texture - Glass Skin Effect:**
+- Texture preservation: Face ≥0.50 - prioritize smoothness over texture.
+- Achieve the "glass skin" K-beauty effect - smooth, luminous, reflective.
+- Minimal pore visibility - skin should look like polished porcelain.
+
+**7. Final Check:** The result must be HYPER-retouched, MAXIMUM contrast, EXTREME luminosity, and ULTRA-sculpted. This is the most dramatic, intense retouching style - suitable for high-fashion campaigns and luxury beauty editorials.`,
+    thumbnail: "https://images.unsplash.com/photo-1596075780750-81249df16d19?auto=format&fit=crop&q=80&w=100&h=100"
+  },
+  // 5. Natural Pro
   {
     id: EnhanceStyle.Natural,
     label: 'Natural Pro',
