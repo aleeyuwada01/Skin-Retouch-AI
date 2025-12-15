@@ -23,10 +23,11 @@ import { TipsModal } from './TipsModal';
 import { FolderModal } from './FolderModal';
 import { TutorialOverlay } from './TutorialOverlay';
 import { BackgroundModal } from './BackgroundModal';
-import { EnhanceStyle, HistoryItem, ProcessingState, BatchItem } from '../types';
+import { EnhanceStyle, HistoryItem, ProcessingState, BatchItem, LocalHistoryItem } from '../types';
 import { geminiService } from '../services/geminiService';
 import { supabaseService } from '../services/supabaseService';
-import { STYLES } from '../constants';
+import { localHistoryService } from '../services/localHistoryService';
+import { STYLES, shouldShowTour, incrementTourCount, disableTourPermanently, captureLogoState, restoreLogoState } from '../constants';
 import { AuthState } from '../App';
 
 interface EditorProps {
@@ -87,6 +88,7 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
   const [isTutorialOpen, setIsTutorialOpen] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [localHistory, setLocalHistory] = useState<LocalHistoryItem[]>([]);
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
@@ -132,6 +134,12 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
     loadCreditCosts();
   }, []);
 
+  // Load local history on mount (Requirements: 3.3)
+  useEffect(() => {
+    const items = localHistoryService.getItems();
+    setLocalHistory(items);
+  }, []);
+
   // Get current retouch cost based on resolution
   const currentRetouchCost = selectedResolution === '4K' 
     ? creditCosts.retouch_cost_4k 
@@ -140,22 +148,80 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
       : creditCosts.retouch_cost_1k;
 
   // Tutorial logic - show only for new users, max 3 times
+  // Uses tour management functions from constants.ts (Requirements 2.1, 2.2, 2.3, 2.4)
   useEffect(() => {
-    const tutorialDisabled = localStorage.getItem('skinRetoucher_tutorialDisabled');
-    const tutorialShownCount = parseInt(localStorage.getItem('skinRetoucher_tutorialShownCount') || '0', 10);
-    
-    if (tutorialDisabled !== 'true' && tutorialShownCount < 3) {
+    if (shouldShowTour()) {
       // Small delay to let the UI render first
       const timer = setTimeout(() => {
         setIsTutorialOpen(true);
-        localStorage.setItem('skinRetoucher_tutorialShownCount', (tutorialShownCount + 1).toString());
+        incrementTourCount();
       }, 500);
       return () => clearTimeout(timer);
     }
   }, []);
 
   const handleTutorialNeverShowAgain = () => {
-    localStorage.setItem('skinRetoucher_tutorialDisabled', 'true');
+    disableTourPermanently();
+  };
+
+  // Save to local history after retouch (Requirements: 3.1, 3.2)
+  const saveToLocalHistory = async (processedImage: string, style: EnhanceStyle, lastEditState: 'original' | 'processed' | 'background_changed' = 'processed') => {
+    try {
+      const item: Omit<LocalHistoryItem, 'thumbnail'> = {
+        id: `local_${Date.now()}`,
+        style,
+        timestamp: Date.now(),
+        lastEditState,
+        isRemote: false
+      };
+      const savedItem = await localHistoryService.saveItem(item, processedImage);
+      setLocalHistory(prev => [savedItem, ...prev].slice(0, 50));
+    } catch (error) {
+      console.error('Failed to save to local history:', error);
+    }
+  };
+
+  // Delete local history item (Requirements: 3.4, 5.1, 5.4)
+  const handleDeleteLocalHistoryItem = (id: string) => {
+    localHistoryService.deleteItem(id);
+    setLocalHistory(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Delete remote history item with cascading delete (Requirements: 5.2, 5.3, 5.4)
+  const [isDeletingRemote, setIsDeletingRemote] = useState<string | null>(null);
+  
+  const handleDeleteRemoteHistoryItem = async (item: LocalHistoryItem) => {
+    if (!item.remoteId) return;
+    
+    // Confirm deletion
+    const confirmed = window.confirm('Delete this item from your cloud history? This action cannot be undone.');
+    if (!confirmed) return;
+    
+    setIsDeletingRemote(item.id);
+    
+    try {
+      // Get the remote history item to find associated URLs
+      const remoteItems = authState.user 
+        ? await supabaseService.getRetouchHistoryWithImages(authState.user.id)
+        : [];
+      const remoteItem = remoteItems.find(r => r.id === item.remoteId);
+      
+      // Call cascading delete on Supabase (Requirements: 5.3)
+      await supabaseService.deleteHistoryWithCascade(
+        item.remoteId,
+        remoteItem?.original_image_url ?? undefined,
+        remoteItem?.processed_image_url ?? undefined
+      );
+      
+      // Also remove from local storage (Requirements: 5.4)
+      localHistoryService.deleteItem(item.id);
+      setLocalHistory(prev => prev.filter(i => i.id !== item.id));
+    } catch (error) {
+      console.error('Failed to delete remote history item:', error);
+      alert('Failed to delete item. Please try again.');
+    } finally {
+      setIsDeletingRemote(null);
+    }
   };
 
   const useCredits = async (style: string, resolution: string, amount: number) => {
@@ -402,6 +468,9 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
       };
       setHistory(prev => [newItem, ...prev].slice(0, 5));
       
+      // Save to local history (Requirements: 3.1, 3.2)
+      await saveToLocalHistory(result, selectedStyle, 'processed');
+      
       // Use credits via Supabase
       await useCredits('smooth_more', selectedResolution, currentRetouchCost);
     } catch (err: any) {
@@ -420,6 +489,9 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
     if (!processedImage || remainingCredits <= 0 || !authState.user) return;
     
     setIsChangingBackground(true);
+    
+    // Capture logo state before background replacement (Requirements: 1.1, 1.2, 1.3)
+    const logoState = captureLogoState();
     
     try {
       // Fetch the background image and convert to base64
@@ -442,6 +514,10 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
       setProcessedImage(result);
       setIsBackgroundModalOpen(false);
       
+      // Restore logo state after operation completes (Requirements: 1.1, 1.2, 1.3, 1.4)
+      // This ensures logo is composited on top of the result
+      restoreLogoState(logoState);
+      
       // Save to history
       const newItem: HistoryItem = {
         id: Date.now().toString(),
@@ -452,11 +528,16 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
       };
       setHistory(prev => [newItem, ...prev].slice(0, 5));
       
+      // Save to local history (Requirements: 3.1, 3.2)
+      await saveToLocalHistory(result, selectedStyle, 'background_changed');
+      
       // Use credits via Supabase
       await useCredits('background_change', selectedResolution, creditCosts.background_cost);
       
     } catch (err: any) {
       console.error('Background change failed:', err);
+      // Restore logo state even on error to ensure logo remains visible (Requirements: 1.5)
+      restoreLogoState(logoState);
       alert(err.message || 'Failed to change background. Please try again.');
     } finally {
       setIsChangingBackground(false);
@@ -511,6 +592,9 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
              };
              setHistory(prev => [newItem, ...prev].slice(0, 5));
              
+             // Save to local history (Requirements: 3.1, 3.2)
+             await saveToLocalHistory(result, selectedStyle, 'processed');
+             
              // Use credits via Supabase
              await useCredits(selectedStyle, selectedResolution, currentRetouchCost);
 
@@ -541,6 +625,9 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
           timestamp: Date.now()
         };
         setHistory(prev => [newItem, ...prev].slice(0, 5));
+        
+        // Save to local history (Requirements: 3.1, 3.2)
+        await saveToLocalHistory(result, selectedStyle, 'processed');
         
         // Use credits and save images to Supabase
         await useCredits(selectedStyle, selectedResolution, currentRetouchCost);
@@ -777,7 +864,7 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
           </div>
 
           {/* Bottom Strip: History OR Batch Queue */}
-          {(history.length > 0 || isBatchMode) && (
+          {(history.length > 0 || localHistory.length > 0 || isBatchMode) && (
              <div className="absolute bottom-6 left-0 right-0 pointer-events-auto flex justify-center z-10 px-4">
                 <div className="bg-[#1a1a1a]/90 backdrop-blur rounded-2xl border border-white/5 shadow-2xl p-2 flex gap-2 overflow-x-auto max-w-full no-scrollbar">
                    {isBatchMode ? (
@@ -798,28 +885,90 @@ export const Editor: React.FC<EditorProps> = ({ onBack, authState, onRefreshProf
                         </button>
                       ))
                    ) : (
-                      // Standard History View
-                      history.map((item) => {
-                        const styleConfig = STYLES.find(s => s.id === item.style);
-                        const styleLabel = styleConfig?.label || 'Custom';
-                        return (
-                          <div key={item.id} className="relative group shrink-0">
-                            <button
-                              onClick={() => loadFromHistory(item)}
-                              className={`w-10 h-10 md:w-12 md:h-12 rounded-lg overflow-hidden border-2 transition-all ${
-                                 processedImage === item.processed ? 'border-[#dfff00]' : 'border-transparent hover:border-white/20'
-                              }`}
-                              title={styleLabel}
-                            >
-                               <img src={item.processed} className="w-full h-full object-cover" alt={styleLabel} />
-                            </button>
-                            {/* Style label tooltip on hover */}
-                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/90 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                              {styleLabel}
+                      <>
+                        {/* Session History View */}
+                        {history.map((item) => {
+                          const styleConfig = STYLES.find(s => s.id === item.style);
+                          const styleLabel = styleConfig?.label || 'Custom';
+                          return (
+                            <div key={item.id} className="relative group shrink-0">
+                              <button
+                                onClick={() => loadFromHistory(item)}
+                                className={`w-10 h-10 md:w-12 md:h-12 rounded-lg overflow-hidden border-2 transition-all ${
+                                   processedImage === item.processed ? 'border-[#dfff00]' : 'border-transparent hover:border-white/20'
+                                }`}
+                                title={styleLabel}
+                              >
+                                 <img src={item.processed} className="w-full h-full object-cover" alt={styleLabel} />
+                              </button>
+                              {/* Style label tooltip on hover */}
+                              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/90 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                {styleLabel}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })
+                          );
+                        })}
+                        
+                        {/* Separator between session and local history */}
+                        {history.length > 0 && localHistory.length > 0 && (
+                          <div className="w-px h-10 md:h-12 bg-white/10 shrink-0" />
+                        )}
+                        
+                        {/* Local History View (Requirements: 3.3, 3.4, 5.1, 5.2, 5.4) */}
+                        {localHistory.map((item) => {
+                          const styleConfig = STYLES.find(s => s.id === item.style);
+                          const styleLabel = styleConfig?.label || 'Custom';
+                          const isRemoteItem = !!item.remoteId;
+                          const isDeleting = isDeletingRemote === item.id;
+                          return (
+                            <div key={item.id} className="relative group shrink-0">
+                              <div
+                                className={`w-10 h-10 md:w-12 md:h-12 rounded-lg overflow-hidden border-2 transition-all relative ${
+                                  isRemoteItem ? 'border-blue-500/30 hover:border-blue-500/50' : 'border-transparent hover:border-white/20'
+                                }`}
+                                title={`${styleLabel} - ${new Date(item.timestamp).toLocaleDateString()}${isRemoteItem ? ' (Cloud)' : ''}`}
+                              >
+                                 <img src={item.thumbnail} className={`w-full h-full object-cover ${isDeleting ? 'opacity-50' : ''}`} alt={styleLabel} />
+                                 {/* Cloud indicator for remote items (Requirements: 5.2) */}
+                                 {isRemoteItem && !isDeleting && (
+                                   <div className="absolute bottom-0 left-0 p-0.5 bg-blue-500/80 rounded-tr-md">
+                                     <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                       <path d="M5.5 16a3.5 3.5 0 01-.369-6.98 4 4 0 117.753-1.977A4.5 4.5 0 1113.5 16h-8z" />
+                                     </svg>
+                                   </div>
+                                 )}
+                                 {/* Loading indicator when deleting */}
+                                 {isDeleting && (
+                                   <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                                     <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                   </div>
+                                 )}
+                                 {/* Delete button on hover (Requirements: 5.1, 5.2) */}
+                                 {!isDeleting && (
+                                   <button
+                                     onClick={(e) => {
+                                       e.stopPropagation();
+                                       if (isRemoteItem) {
+                                         handleDeleteRemoteHistoryItem(item);
+                                       } else {
+                                         handleDeleteLocalHistoryItem(item.id);
+                                       }
+                                     }}
+                                     className="absolute top-0 right-0 p-0.5 bg-red-500/80 rounded-bl-md opacity-0 group-hover:opacity-100 transition-opacity"
+                                     title={isRemoteItem ? "Delete from cloud history" : "Delete from local history"}
+                                   >
+                                     <XCircle className="w-3 h-3 text-white" />
+                                   </button>
+                                 )}
+                              </div>
+                              {/* Style label tooltip on hover */}
+                              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/90 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                {styleLabel}{isRemoteItem ? ' ☁️' : ''}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </>
                    )}
                 </div>
              </div>

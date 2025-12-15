@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Check, ArrowRight, Star, LogOut, User, LayoutDashboard, Shield, Loader2, X, Phone, DollarSign } from 'lucide-react';
+import { Sparkles, Check, ArrowRight, Star, LogOut, User, LayoutDashboard, Shield, Loader2, X, Phone, DollarSign, Settings, RotateCcw } from 'lucide-react';
 import { Button } from './Button';
 import { AuthModal } from './AuthModal';
 import { PolicyModal, PolicyType } from './PolicyModal';
 import { ComparisonSlider } from './ComparisonSlider';
 import { AuthState } from '../App';
 import { supabaseService, AppSettings } from '../services/supabaseService';
+import { resetTourCount } from '../constants';
 
 interface LandingPageProps {
   onStart: () => void;
@@ -42,6 +43,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   // Pricing State
   const [showNaira, setShowNaira] = useState(false);
   const [pricing, setPricing] = useState({ priceUsd: 7, credits: 30, rate: 1480 });
+
+  // Settings Dropdown State
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [tourResetMessage, setTourResetMessage] = useState<string | null>(null);
 
   const user = authState.user;
   const profile = authState.profile;
@@ -113,6 +118,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
     setPurchaseForm({ name: '', phone: '', plan: 'starter' });
   };
 
+  // Handle tour reset (Requirements: 2.5)
+  const handleResetTour = () => {
+    resetTourCount();
+    setTourResetMessage('Tour has been reset! You will see it on your next visit to the editor.');
+    setShowSettingsMenu(false);
+    // Auto-hide message after 3 seconds
+    setTimeout(() => setTourResetMessage(null), 3000);
+  };
+
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-[#dfff00] selection:text-black">
       {/* Navbar */}
@@ -150,13 +164,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                    <LayoutDashboard size={16} />
                    <span>Dashboard</span>
                  </button>
-                 <button 
-                   onClick={onLogout}
-                   className="text-sm font-medium text-neutral-400 hover:text-white transition-colors flex items-center gap-2"
-                 >
-                   <LogOut size={16} />
-                   <span className="hidden md:inline">Sign Out</span>
-                 </button>
+                 
+                 {/* Settings Dropdown */}
+                 <div className="relative">
+                   <button 
+                     onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                     className="text-sm font-medium text-neutral-400 hover:text-white transition-colors flex items-center gap-2 p-2 rounded-lg hover:bg-white/5"
+                   >
+                     <Settings size={16} />
+                   </button>
+                   
+                   {showSettingsMenu && (
+                     <>
+                       {/* Backdrop to close menu */}
+                       <div 
+                         className="fixed inset-0 z-40" 
+                         onClick={() => setShowSettingsMenu(false)}
+                       />
+                       {/* Dropdown Menu */}
+                       <div className="absolute right-0 top-full mt-2 w-48 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
+                         <button
+                           onClick={handleResetTour}
+                           className="w-full px-4 py-3 text-left text-sm text-neutral-300 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-3"
+                         >
+                           <RotateCcw size={14} />
+                           Reset Tour
+                         </button>
+                         <div className="border-t border-white/5" />
+                         <button
+                           onClick={() => {
+                             setShowSettingsMenu(false);
+                             onLogout();
+                           }}
+                           className="w-full px-4 py-3 text-left text-sm text-neutral-300 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-3"
+                         >
+                           <LogOut size={14} />
+                           Sign Out
+                         </button>
+                       </div>
+                     </>
+                   )}
+                 </div>
                </div>
              ) : (
                <>
@@ -320,6 +368,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
            <p className="text-xs text-neutral-700">&copy; 2025 Skin Retoucher AI. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Tour Reset Confirmation Toast */}
+      {tourResetMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#1a1a1a] border border-[#dfff00]/30 text-white px-6 py-3 rounded-xl shadow-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
+          <Check size={18} className="text-[#dfff00]" />
+          <span className="text-sm">{tourResetMessage}</span>
+          <button 
+            onClick={() => setTourResetMessage(null)}
+            className="text-neutral-400 hover:text-white ml-2"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Modals */}
       <AuthModal 

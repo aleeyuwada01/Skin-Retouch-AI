@@ -1,4 +1,6 @@
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
+import { localHistoryService } from './localHistoryService';
+import { EnhanceStyle } from '../types';
 
 const SUPABASE_URL = 'https://hursnbwjbbkajelsrqqb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1cnNuYndqYmJrYWplbHNycXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NTIxMjYsImV4cCI6MjA4MTAyODEyNn0.g5RyY7A7gupQy9G_RdT36Eo7ADHytPp3VulF5R7qM7s';
@@ -639,6 +641,97 @@ class SupabaseService {
       })
       .eq('id', id);
     if (error) throw error;
+  }
+
+  /**
+   * Synchronizes remote history to local storage on user login.
+   * Fetches remote history items and merges them with local items.
+   * 
+   * Requirements: 4.1, 4.2
+   * @param userId - The ID of the logged-in user
+   */
+  async syncHistoryOnLogin(userId: string): Promise<void> {
+    try {
+      // Fetch remote history with images
+      const remoteItems = await this.getRetouchHistoryWithImages(userId);
+      
+      // Get local items
+      const localItems = localHistoryService.getItems();
+      
+      // Merge: add remote items not already in local storage
+      for (const remote of remoteItems) {
+        const existsLocally = localItems.some(
+          local => local.remoteId === remote.id
+        );
+        
+        if (!existsLocally && remote.processed_image_url) {
+          // Add to local with remote reference
+          await localHistoryService.saveItem({
+            id: `local_${remote.id}`,
+            style: remote.style as EnhanceStyle,
+            timestamp: new Date(remote.created_at).getTime(),
+            lastEditState: 'processed',
+            isRemote: true,
+            remoteId: remote.id
+          }, remote.processed_image_url);
+        }
+      }
+    } catch (error) {
+      // Log error but don't throw - sync failures shouldn't block login
+      console.error('Failed to sync history on login:', error);
+    }
+  }
+
+  /**
+   * Deletes a remote history item with cascading delete of associated files.
+   * Removes both the database record and all associated storage files.
+   * 
+   * Requirements: 4.3, 4.4, 5.3
+   * @param id - The ID of the history record to delete
+   * @param originalUrl - Optional URL of the original image in storage
+   * @param processedUrl - Optional URL of the processed image in storage
+   */
+  async deleteHistoryWithCascade(
+    id: string,
+    originalUrl?: string,
+    processedUrl?: string
+  ): Promise<void> {
+    const errors: Error[] = [];
+    
+    // Delete files from storage (handle partial failures gracefully)
+    if (originalUrl) {
+      try {
+        await this.deleteRetouchImage(originalUrl);
+      } catch (error) {
+        console.error('Failed to delete original image:', error);
+        errors.push(error as Error);
+      }
+    }
+    
+    if (processedUrl) {
+      try {
+        await this.deleteRetouchImage(processedUrl);
+      } catch (error) {
+        console.error('Failed to delete processed image:', error);
+        errors.push(error as Error);
+      }
+    }
+    
+    // Delete database record
+    const { error } = await this.supabase
+      .from('retouch_history')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      errors.push(error);
+    }
+    
+    // If database deletion failed, throw the error
+    // Storage deletion failures are logged but don't prevent completion
+    if (error) {
+      throw error;
+    }
   }
 }
 

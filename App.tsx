@@ -48,6 +48,12 @@ const App: React.FC = () => {
       const profile = await supabaseService.getProfile(user.id);
       setAuthState({ user, profile, isLoading: false });
       
+      // Sync remote history to local storage on login (Requirements: 4.2)
+      // Handle sync errors gracefully - don't block login
+      supabaseService.syncHistoryOnLogin(user.id).catch(error => {
+        console.error('Failed to sync history on login:', error);
+      });
+      
       // Redirect admin users to admin panel, regular users to editor
       if (redirectToApp) {
         if (profile?.is_admin) {
