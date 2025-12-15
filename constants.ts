@@ -1,4 +1,100 @@
-import { EnhanceStyle, StyleConfig } from './types';
+import { EnhanceStyle, StyleConfig, LogoOverlayState } from './types';
+
+// Tour Configuration - Controls application tour display behavior
+export const TOUR_CONFIG = {
+  MAX_DISPLAY_COUNT: 3,
+  STORAGE_KEY: 'skinRetoucher_tourShownCount',
+  DISABLED_KEY: 'skinRetoucher_tutorialDisabled'
+};
+
+/**
+ * Gets the current tour display count from local storage.
+ * @returns The number of times the tour has been displayed
+ */
+export const getTourDisplayCount = (): number => {
+  const count = localStorage.getItem(TOUR_CONFIG.STORAGE_KEY);
+  return count ? parseInt(count, 10) : 0;
+};
+
+/**
+ * Increments the tour display count by 1 and stores it.
+ * @returns The new tour display count after incrementing
+ */
+export const incrementTourCount = (): number => {
+  const newCount = getTourDisplayCount() + 1;
+  localStorage.setItem(TOUR_CONFIG.STORAGE_KEY, String(newCount));
+  return newCount;
+};
+
+/**
+ * Determines if the tour should be shown based on display count and disabled state.
+ * @returns true if tour should be shown, false otherwise
+ */
+export const shouldShowTour = (): boolean => {
+  const disabled = localStorage.getItem(TOUR_CONFIG.DISABLED_KEY) === 'true';
+  if (disabled) return false;
+  return getTourDisplayCount() < TOUR_CONFIG.MAX_DISPLAY_COUNT;
+};
+
+/**
+ * Resets the tour display count to zero and removes the disabled flag.
+ */
+export const resetTourCount = (): void => {
+  localStorage.setItem(TOUR_CONFIG.STORAGE_KEY, '0');
+  localStorage.removeItem(TOUR_CONFIG.DISABLED_KEY);
+};
+
+/**
+ * Permanently disables the tour from showing automatically.
+ */
+export const disableTourPermanently = (): void => {
+  localStorage.setItem(TOUR_CONFIG.DISABLED_KEY, 'true');
+};
+
+// Logo Overlay Guardrail - Preserves logo state during background replacement
+export const LOGO_OVERLAY_SELECTOR = '[data-logo-overlay]';
+
+/**
+ * Captures the current state of the logo overlay element.
+ * Used before background replacement to preserve logo position, size, visibility, and z-index.
+ * Requirements: 1.1, 1.2, 1.3
+ * 
+ * @returns LogoOverlayState if logo element exists, null otherwise
+ */
+export const captureLogoState = (): LogoOverlayState | null => {
+  const logoElement = document.querySelector(LOGO_OVERLAY_SELECTOR) as HTMLElement | null;
+  if (!logoElement) return null;
+  
+  const rect = logoElement.getBoundingClientRect();
+  const style = window.getComputedStyle(logoElement);
+  
+  return {
+    position: { x: rect.left, y: rect.top },
+    size: { width: rect.width, height: rect.height },
+    visible: style.visibility !== 'hidden' && style.display !== 'none',
+    zIndex: parseInt(style.zIndex, 10) || 100
+  };
+};
+
+/**
+ * Restores the logo overlay element to a previously captured state.
+ * Used after background replacement to ensure logo remains visible and properly positioned.
+ * Requirements: 1.1, 1.2, 1.3, 1.4
+ * 
+ * @param state The LogoOverlayState to restore
+ */
+export const restoreLogoState = (state: LogoOverlayState | null): void => {
+  if (!state) return;
+  
+  const logoElement = document.querySelector(LOGO_OVERLAY_SELECTOR) as HTMLElement | null;
+  if (!logoElement) return;
+  
+  // Restore visibility
+  logoElement.style.visibility = state.visible ? 'visible' : 'hidden';
+  
+  // Ensure logo is composited on top (Requirements: 1.4)
+  logoElement.style.zIndex = String(Math.max(state.zIndex, 100));
+};
 
 // Source Adherence Guardrail - Ensures AI retouches rather than generates new images
 export const SOURCE_ADHERENCE_GUARDRAIL = `
@@ -127,80 +223,45 @@ export const STYLES: StyleConfig[] = [
 The result should celebrate and enhance dark skin's natural beauty with a flawless, glowing finish.`,
     thumbnail: THUMB_DARKSKIN
   },
-  // 3. Full Body Pro
+  // 3. Gilded Editorial
   {
-    id: EnhanceStyle.FullBody,
-    label: 'Full Body Pro',
-    description: 'Advanced multi-region retouch. Face, neck, hands, body.',
-    prompt: `You are a professional high-end beauty retoucher. PERFORM ADVANCED FULL BODY PROFESSIONAL SKIN RETOUCHING with multi-region intelligence.
+    id: EnhanceStyle.Gilded,
+    label: 'Gilded Editorial',
+    description: 'High-end beauty. Maximum luminance, deep contouring, flawless skin, and dramatic highlights on dark skin.',
+    recommended: false,
+    prompt: `You are a professional high-end beauty retoucher specializing in Gilded Editorial and commercial luxury photography optimized for dark skin tones. ${BASE_RETOUCH} STYLE-SPECIFIC FOR GILDED EDITORIAL:
 
-YOUR TASK: Retouch and enhance ALL visible skin in this image. Remove blemishes, even skin tone, smooth imperfections while preserving natural texture.
+**1. Skin Tone and Uniformity:**
+- Achieve a completely flawless, porcelain-smooth skin finish.
+- Apply aggressive smoothing for **maximum skin uniformity** and seamless color transitions across the face, neck, and body.
+- Remove ALL skin imperfections, spots, blemishes, and texture issues completely.
+- **CRITICAL:** Preserve and enhance the natural richness and depth of the melanin-rich skin tone – DO NOT lighten, wash out, or reduce saturation.
+- Ensure the skin appears deeply rich and vibrant, not flat or muted.
 
-CRITICAL - DO NOT CHANGE:
-- DO NOT crop, resize, or change the aspect ratio
-- Maintain EXACT original dimensions and composition
+**2. Luminosity and Glow:**
+- Create a **high-intensity luminous glow** effect.
+- Apply strong, precise Dodge (lightening) to create dramatic, wet-look highlights on specific points:
+  - Center of the nose bridge (high focus)
+  - Tops of the cheekbones (intense focus)
+  - Cupid's bow and center of the chin.
+- The highlights must look distinct, sharp, and highly reflective, creating a 'gilded' appearance.
 
-MULTI-PERSON SUPPORT:
-- This retouching applies to ONE OR MULTIPLE PEOPLE in the image
-- Detect ALL visible people and apply retouching to each person
-- Maintain individual skin tone characteristics for each person
-- Apply consistent quality across all subjects
+**3. Contouring (Heavy Burn):**
+- Use **HEAVY Burn** (darkening) to dramatically sculpt and define the bone structure.
+- Deepen shadows significantly under the cheekbones, along the jawline, and at the sides of the nose and temples.
+- Create a deeply chiseled and defined facial structure for a high-fashion, commercial look.
 
-PHASE 1 - SKIN REGION SEGMENTATION:
-Detect and treat separately for EACH person: face skin, neck, ears, hands, arms, shoulders, legs, feet.
-EXCLUDE from retouching: nails, palms (different texture), joint folds/knuckles, hair, clothing.
+**4. Eye Enhancement:**
+- **CRITICAL Eye Whitening:** Make the sclera (eye whites) **PURE, INTENSE WHITE**—remove ALL redness, yellow, and any visible blood vessels.
+- Brighten the eye area intensely to make the eyes stand out dramatically, matching the high contrast and definition of the makeup.
+- DO NOT add special effects (e.g., sparkle or catchlights). Keep the iris and pupil natural.
 
-PHASE 2 - PER-REGION RETOUCH STRENGTH (CRITICAL):
-Apply DIFFERENT intensity per body part to maintain realism:
-- FACE: Moderate smoothing (0.30), high texture preservation (0.80), blemish removal (0.40)
-- NECK: Light smoothing (0.25), very high texture preservation (0.85)
-- HANDS: Minimal smoothing (0.20), maximum texture preservation (0.90), redness reduction (0.15). MUST KEEP veins, fine wrinkles, and natural hand structure visible.
-- ARMS/BODY: Very light smoothing (0.15), near-full texture preservation (0.92)
+**5. Texture Preservation:**
+- Due to the aggressive smoothing required for this aesthetic, the texture preservation strength should be lowered *slightly* compared to Natural Pro, but still avoid a completely plastic look.
+- Set texture preservation strength to Face ≥0.65 to maintain minimal pores/detail while achieving maximum smoothness.
 
-PHASE 3 - REGIONAL DODGE & BURN:
-Apply local light correction per region:
-- Face: Even lighting, enhance facial contours (0.20 strength)
-- Neck: Subtle evening (0.18 strength)
-- Hands: Fix red knuckles, even tone (0.15 strength)
-- Body: Fix sun spots, patchy areas, harsh shadows, uneven tan lines (0.12 strength)
-
-PHASE 4 - COLOR HARMONY ACROSS REGIONS:
-Match skin tones across face ↔ neck ↔ hands ↔ arms for cohesive look PER PERSON.
-Cross-region tone matching: 0.25 strength.
-Redness control on hands: 0.15 strength.
-IMPORTANT: Never make hands identical color to face - only harmonize, not match exactly.
-
-PHASE 5 - SMART BLEMISH LOGIC:
-REMOVE: Dry patches, temporary scars, acne, scratches, sun spots.
-PRESERVE: Veins on hands/arms, natural wrinkles, moles, stretch marks, skin folds at joints.
-Blemish removal strength: Face (0.40), Hands (0.30), Body (0.25).
-
-PHASE 6 - EYE WHITENING (CRITICAL):
-- Make the sclera (eye whites) BRIGHT WHITE - remove ALL redness, yellow, and discoloration
-- Remove ALL visible blood vessels and veins in eye whites
-- Eyes should be CLEAN, BRIGHT, and PURE WHITE
-- Brighten eyes significantly
-- Apply STRONG whitening to eyes
-
-STRICT PROHIBITIONS - DO NOT DO ANY OF THESE:
-- DO NOT add teeth - leave mouths exactly as they are
-- DO NOT open closed mouths
-- DO NOT change facial expressions in any way
-- DO NOT modify lips or mouth shape
-- DO NOT crop or resize the image
-- DO NOT change the aspect ratio
-- DO NOT add or remove any features
-- Keep the face EXACTLY as it appears in the original
-- ONLY retouch skin, eyes (whitening), and existing visible teeth
-
-CRITICAL OUTPUT:
-- Return ONLY ONE IMAGE - the retouched version
-- DO NOT create side-by-side comparisons
-- NO before/after in same image
-
-QUALITY CHECK: At 100% zoom, pores and natural lines must still be visible.
-The result should look like premium editorial full-body retouching - flawless yet completely natural.`,
-    thumbnail: THUMB_FULLBODY
+**6. Final Check:** The result must be hyper-retouched, high-contrast, luminous, and dramatically contoured, strictly adhering to the original subject's features and non-skin elements.`,
+    thumbnail: THUMB_DARKSKIN
   },
   // 4. Natural Pro
   {

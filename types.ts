@@ -3,7 +3,7 @@ export enum EnhanceStyle {
   Soft = 'Soft Beauty',
   Sculpted = 'Sculpted Glow',
   DarkSkin = 'Dark Skin Glow',
-  FullBody = 'Full Body Pro',
+  Gilded = 'Gilded Editorial',
   DodgeBurn = 'Dodge & Burn',
   Custom = 'Custom Edit'
 }
@@ -44,6 +44,32 @@ export interface Folder {
   name: string;
   items: HistoryItem[];
   createdAt: number;
+}
+
+/**
+ * Represents a history item stored in local storage.
+ * Used for offline access and cross-device sync tracking.
+ */
+export interface LocalHistoryItem {
+  id: string;
+  thumbnail: string; // Compressed base64 thumbnail
+  style: EnhanceStyle;
+  timestamp: number;
+  lastEditState: 'original' | 'processed' | 'background_changed';
+  isRemote: boolean; // Indicates if synced to Supabase
+  remoteId?: string; // Supabase record ID (optional)
+}
+
+/**
+ * Represents the state of a logo overlay element.
+ * Used to capture and restore logo state during background replacement operations.
+ * Requirements: 1.1, 1.2, 1.3, 1.4
+ */
+export interface LogoOverlayState {
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+  visible: boolean;
+  zIndex: number;
 }
 
 declare global {
