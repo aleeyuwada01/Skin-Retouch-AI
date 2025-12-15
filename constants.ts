@@ -126,7 +126,6 @@ The person in your output MUST be recognizably the SAME person from the input im
 
 // Thumbnails for different styles
 const THUMB_NATURAL = "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&q=80&w=100&h=100";
-const THUMB_SOFT = "https://images.unsplash.com/photo-1503104834685-7205e8607eb9?auto=format&fit=crop&q=80&w=100&h=100";
 const THUMB_SCULPTED = "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&q=80&w=100&h=100";
 const THUMB_DARKSKIN = "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&q=80&w=100&h=100";
 
@@ -332,24 +331,38 @@ Before outputting, verify:
 - This should look like a high-end beauty campaign or luxury magazine cover
 - The retouching should be OBVIOUS and DRAMATIC - not subtle or natural
 
+=== ABSOLUTE PROHIBITIONS - NEVER DO THESE ===
+- NEVER change the person's POSE - arms, hands, head position, body angle must stay EXACTLY the same
+- NEVER add ANY eye effects - no sparkles, no catchlights, no glow, no reflections, no shine effects
+- NEVER change eye color, pupil size, or eye shape
+- NEVER generate a new face or replace the subject
+- NEVER alter facial structure, bone structure, or face shape
+- NEVER change body proportions or body shape
+- NEVER add or remove any body parts or features
+- NEVER change the background or scene
+- NEVER crop, resize, or change dimensions
+- ONLY modify: skin texture/smoothness, skin tone evenness, highlights/shadows, eye whites (remove redness only), teeth whiteness (if visible)
+
+The person in the output MUST be 100% recognizable as the EXACT same person in the EXACT same pose.
+
 REMEMBER: This is ULTRA GLAM - the most extreme style. Do NOT hold back on smoothing and effects. The result should look like professional high-fashion retouching with maximum intensity.`,
     thumbnail: "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?auto=format&fit=crop&q=80&w=100&h=100"
   },
-  // 5. Natural Pro
-  {
-    id: EnhanceStyle.Natural,
-    label: 'Natural Pro',
-    description: 'Editorial realism. Even skin tone, blemish removal, high texture retention.',
-    prompt: `Professional skin retouch using Natural Pro-Retouch style. ${BASE_RETOUCH} STYLE-SPECIFIC: Focus on editorial realism. Use subtle frequency separation to even skin tone. Surgically remove all blemishes and acne while strictly preserving pores and natural skin texture. Apply subtle Dodge & Burn to enhance facial dimension and contours naturally. Brighten highlights on forehead, nose bridge, and cheekbones. Deepen shadows under cheekbones and jawline subtly. The skin must look realistic and flawless, not plastic or artificial.`,
-    thumbnail: THUMB_NATURAL
-  },
-  // 5. Soft Beauty
+  // Natural Pro - TEMPORARILY HIDDEN
+  // {
+  //   id: EnhanceStyle.Natural,
+  //   label: 'Natural Pro',
+  //   description: 'Editorial realism. Even skin tone, blemish removal, high texture retention.',
+  //   prompt: `Professional skin retouch using Natural Pro-Retouch style. ${BASE_RETOUCH} STYLE-SPECIFIC: Focus on editorial realism. Use subtle frequency separation to even skin tone. Surgically remove all blemishes and acne while strictly preserving pores and natural skin texture. Apply subtle Dodge & Burn to enhance facial dimension and contours naturally. Brighten highlights on forehead, nose bridge, and cheekbones. Deepen shadows under cheekbones and jawline subtly. The skin must look realistic and flawless, not plastic or artificial.`,
+  //   thumbnail: THUMB_NATURAL
+  // },
+  // Soft Beauty
   {
     id: EnhanceStyle.Soft,
     label: 'Soft Beauty',
     description: 'Fashion look. Smoother transitions, slight glow, flawless skin.',
     prompt: `Professional skin retouch using Soft Beauty style for fashion. ${BASE_RETOUCH} STYLE-SPECIFIC: Apply moderate smoothing for seamless color transitions. Remove all blemishes and imperfections completely. Add a subtle luminous glow effect. Apply moderate Dodge & Burn to sculpt facial features softly - brighten T-zone, under-eye area, and chin; add gentle shadows under cheekbones and along jawline. Reduce texture prominence slightly for a polished, magazine-quality finish. The result should look soft, flawless, and radiant.`,
-    thumbnail: THUMB_SOFT
+    thumbnail: THUMB_NATURAL
   },
 ];
 
