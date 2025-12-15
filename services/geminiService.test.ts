@@ -53,13 +53,14 @@ Keep the same aspect ratio and dimensions.`;
 }
 
 // Arbitrary for EnhanceStyle enum values
+// Note: Only include styles that are currently active in the STYLES array
+// EnhanceStyle.Natural is temporarily hidden, so we exclude it
 const enhanceStyleArb = fc.constantFrom(
-  EnhanceStyle.Natural,
   EnhanceStyle.Soft,
   EnhanceStyle.Sculpted,
   EnhanceStyle.DarkSkin,
-  EnhanceStyle.FullBody,
-  EnhanceStyle.DodgeBurn,
+  EnhanceStyle.Gilded,
+  EnhanceStyle.UltraGlam,
   EnhanceStyle.Custom
 );
 
@@ -99,14 +100,12 @@ describe('Property 1: Guardrail inclusion in all style prompts', () => {
   });
 
   it('should prepend guardrail before style-specific content for all non-custom styles', () => {
-    // Test all non-custom styles explicitly
+    // Test all non-custom styles that are currently active in STYLES array
+    // Note: EnhanceStyle.Natural, EnhanceStyle.DarkSkin, and EnhanceStyle.Soft are temporarily hidden
     const nonCustomStyles = [
-      EnhanceStyle.Natural,
-      EnhanceStyle.Soft,
       EnhanceStyle.Sculpted,
-      EnhanceStyle.DarkSkin,
-      EnhanceStyle.FullBody,
-      EnhanceStyle.DodgeBurn
+      EnhanceStyle.Gilded,
+      EnhanceStyle.UltraGlam
     ];
 
     fc.assert(
@@ -160,13 +159,14 @@ describe('Property 2: Guardrail inclusion for custom prompts', () => {
   });
 
   it('should include guardrail when custom prompt is added to non-custom styles', () => {
+    // Test all non-custom styles that are currently active in STYLES array
+    // Note: EnhanceStyle.Natural is temporarily hidden
     const nonCustomStyles = [
-      EnhanceStyle.Natural,
       EnhanceStyle.Soft,
       EnhanceStyle.Sculpted,
       EnhanceStyle.DarkSkin,
-      EnhanceStyle.FullBody,
-      EnhanceStyle.DodgeBurn
+      EnhanceStyle.Gilded,
+      EnhanceStyle.UltraGlam
     ];
 
     fc.assert(

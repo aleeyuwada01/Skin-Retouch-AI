@@ -22,8 +22,8 @@ describe('LocalHistoryService', () => {
     EnhanceStyle.Soft,
     EnhanceStyle.Sculpted,
     EnhanceStyle.DarkSkin,
-    EnhanceStyle.FullBody,
-    EnhanceStyle.DodgeBurn,
+    EnhanceStyle.Gilded,
+    EnhanceStyle.UltraGlam,
     EnhanceStyle.Custom
   );
 

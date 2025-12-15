@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { EnhanceStyle } from "../types";
-import { STYLES, SYSTEM_INSTRUCTION, SOURCE_ADHERENCE_GUARDRAIL } from "../constants";
+import { STYLES, SYSTEM_INSTRUCTION, SOURCE_ADHERENCE_GUARDRAIL, GUARDRAIL_JSON } from "../constants";
 
 export class GeminiService {
   private ai: GoogleGenAI;
@@ -221,53 +221,81 @@ Keep the same aspect ratio and dimensions.`;
       const bgMimeType = bgMimeMatch ? bgMimeMatch[1] : 'image/jpeg';
       const cleanBgBase64 = backgroundBase64.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
 
-      const promptText = `BACKGROUND REPLACEMENT TASK
+      // Build guardrails from JSON structure
+      const guardrailRules = {
+        protocol: GUARDRAIL_JSON.protocol,
+        prohibitions: GUARDRAIL_JSON.absolute_prohibitions,
+        identity_rule: GUARDRAIL_JSON.identity_rule
+      };
 
-IMAGE 1 (FIRST): Portrait of a person - THIS CONTROLS THE OUTPUT SIZE
-IMAGE 2 (SECOND): Reference background to use
+      const promptText = `BACKGROUND REPLACEMENT TASK - STRICT SUBJECT PRESERVATION
 
-TASK: Cut out the person from IMAGE 1 and place them on the background from IMAGE 2.
+=== GUARDRAIL PROTOCOL ===
+${guardrailRules.protocol}
+
+=== ABSOLUTE PROHIBITIONS ===
+${guardrailRules.prohibitions.map(p => `- ${p}`).join('\n')}
+
+=== IDENTITY RULE ===
+${guardrailRules.identity_rule}
+
+=== INPUT IMAGES ===
+IMAGE 1 (FIRST): Portrait/photo of a person - THIS IS THE MASTER IMAGE
+IMAGE 2 (SECOND): Reference background texture/scene
+
+=== TASK ===
+Extract ONLY the person/subject from IMAGE 1 and composite them onto the background from IMAGE 2.
+
+=== CRITICAL: SUBJECT PRESERVATION (HIGHEST PRIORITY) ===
+You MUST preserve the subject EXACTLY as they appear in IMAGE 1:
+- SAME exact body - do NOT add, remove, or modify ANY body parts
+- SAME exact clothing - do NOT add, remove, or change ANY clothing/accessories
+- SAME exact pose - do NOT change arm position, hand position, head angle, body angle
+- SAME exact framing - if the image shows half body, output half body. If full body, output full body.
+- SAME exact crop - do NOT extend the image to show more of the person than visible in IMAGE 1
+- SAME exact appearance - skin, hair, face, everything IDENTICAL to IMAGE 1
+
+=== CRITICAL: DO NOT HALLUCINATE OR EXTEND ===
+- If IMAGE 1 shows a person from waist up, output ONLY waist up - do NOT generate legs
+- If IMAGE 1 shows a person from chest up, output ONLY chest up - do NOT generate torso/body
+- If arms are cropped in IMAGE 1, keep them cropped - do NOT generate full arms
+- NEVER add shadows that imply body parts not visible in IMAGE 1
+- NEVER generate clothing, accessories, or body parts not in IMAGE 1
+- The subject boundary in output MUST match IMAGE 1 exactly
 
 === CRITICAL: OUTPUT DIMENSIONS ===
-The output image MUST have the EXACT SAME WIDTH and HEIGHT as IMAGE 1 (the portrait).
-DO NOT use the dimensions of IMAGE 2 (the background).
-DO NOT change the aspect ratio.
-DO NOT crop or resize.
-The portrait image dimensions are the MASTER - copy them exactly.
+The output MUST have EXACT SAME dimensions as IMAGE 1:
+- SAME width in pixels
+- SAME height in pixels  
+- SAME aspect ratio
+- DO NOT use IMAGE 2's dimensions
+- DO NOT crop or resize
+- DO NOT add letterboxing or pillarboxing
 
-=== CRITICAL: SIGMA 85mm f/1.4 LENS BLUR ===
-Apply STRONG GAUSSIAN BLUR to the ENTIRE background - simulate Sigma Art 85mm f/1.4 wide open.
-BLUR STRENGTH: Heavy blur - the background should be very soft and dreamy, like shot at f/1.4
-The blur must be UNIFORM across 100% of the background - every pixel blurred equally
-NO sharp areas in background - everything behind the subject must be soft
-This creates professional portrait separation - sharp subject, creamy blurred background
+=== BACKGROUND TREATMENT ===
+Apply professional portrait blur (Sigma 85mm f/1.4 simulation):
+- STRONG Gaussian blur on entire background
+- Uniform blur - no sharp areas
+- Use EXACT colors/scene from IMAGE 2
+- DO NOT change or recolor the background
+- Background should be recognizable as IMAGE 2, just blurred
 
-=== CRITICAL: USE EXACT REFERENCE BACKGROUND ===
-Use the EXACT background from IMAGE 2 - same colors, same scene, same everything
-DO NOT change the background colors or generate a different background
-DO NOT modify what the background looks like - just blur it
-The background should be recognizable as IMAGE 2, just with blur applied
+=== EDGE BLENDING ===
+- Smooth, natural edges around hair and body
+- No visible cutout lines or halos
+- Match lighting between subject and background
+- Subtle contact shadows where appropriate (only where subject touches surfaces)
 
-=== BLENDING ===
-Blend the person naturally into the background:
-- Match lighting direction and color temperature
-- Smooth edges around hair and body - no visible cutout lines
-- Add subtle shadows where person meets ground/surface
-- The composite should look like one real photograph
+=== ABSOLUTE FORBIDDEN ===
+- Generating body parts not in IMAGE 1 (legs, arms, torso, etc.)
+- Adding clothing or accessories not in IMAGE 1
+- Changing the subject's pose or position
+- Extending the frame to show more of the person
+- Using IMAGE 2's aspect ratio
+- Creating a different person
+- Adding any elements not present in IMAGE 1
 
-=== PRESERVE ===
-- Person's exact appearance, size, position from IMAGE 1
-- All skin retouching quality
-- Sharp focus on the subject
-
-=== FORBIDDEN ===
-- Changing output dimensions (MUST match IMAGE 1)
-- Sharp/unblurred background areas
-- Visible edges or halos around person
-- Changing the reference background's appearance
-- Using background's aspect ratio instead of portrait's
-
-OUTPUT: Single image with person sharp, background uniformly blurred with Sigma f/1.4 bokeh, dimensions matching IMAGE 1.`;
+OUTPUT: Single composite image with subject from IMAGE 1 (EXACTLY as shown, no additions) on blurred IMAGE 2 background, matching IMAGE 1 dimensions.`;
 
       const safetySettings: any[] = [
         { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
